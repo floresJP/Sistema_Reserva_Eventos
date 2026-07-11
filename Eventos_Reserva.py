@@ -52,7 +52,7 @@ class SistemaConfig:
             cls._inst = super().__new__(cls)
             cls._inst.nombre  = "SISTEMA DE RESERVA DE EVENTOS"
             cls._inst.version = "1.0"
-            cls._inst.empresa = "Reservafy"
+            cls._inst.empresa = "Eventix"
             cls._inst.autor   = "AMPUERO - PASCACIO"
 
             Logger().info(
