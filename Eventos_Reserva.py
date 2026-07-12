@@ -61,3 +61,40 @@ class SistemaConfig:
                 f"Empresa: {cls._inst.empresa} "
                 f"Autor: {cls._inst.autor}")
         return cls._inst
+    
+    # ──────────────────────────────────────────────────────────────────────────────
+# EXCEPCIONES PERSONALIZADAS
+# ──────────────────────────────────────────────────────────────────────────────
+class ClienteNoEncontradoError(Exception):
+    def __init__(self, id_cliente):
+        super().__init__(f"Cliente ID={id_cliente} no encontrado")
+
+class CorreoDuplicadoError(Exception):
+    def __init__(self, correo):
+        super().__init__(f"Correo '{correo}' ya registrado")
+
+class TematicaNoEncontradaError(Exception):
+    def __init__(self, id_tematica):
+        super().__init__(f"Tematica ID={id_tematica} no encontrada")
+
+class ReservaNoEncontradaError(Exception):
+    def __init__(self, id_reserva):
+        super().__init__(f"Reserva ID={id_reserva} no encontrada")
+
+class ServicioAdicionalNoEncontradoError(Exception):
+    def __init__(self, id_servicio):
+        super().__init__(f"Servicio adicional ID={id_servicio} no encontrado")
+
+class PagoNoEncontradoError(Exception):
+    def __init__(self, id_pago):
+        super().__init__(f"Pago ID={id_pago} no encontrado")
+
+class CuotaNoEncontradaError(Exception):
+    def __init__(self, id_cuota):
+        super().__init__(f"Cuota ID={id_cuota} no encontrada")
+
+class DatoInvalidoError(Exception):
+    def __init__(self, campo, motivo):
+        super().__init__(f"Dato inválido en '{campo}': {motivo}")
+        
+    
