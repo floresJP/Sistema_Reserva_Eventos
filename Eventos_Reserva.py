@@ -296,4 +296,146 @@ def pedir_dato(mensaje, validador_obj, opcional=False, valor_si_vacio=None):
         except DatoInvalidoError as ex:
             print(f"  ERROR: {ex}")
         
-    
+        
+# ──────────────────────────────────────────────────────────────────────────────
+# MODELO — Cliente
+# (sin direccion: la direccion que importa es la del EVENTO, vive en Reserva)
+# ──────────────────────────────────────────────────────────────────────────────
+class Cliente:
+    def __init__(self, nombre, apellido, dni, telefono, correo):
+        self.id_cliente     = None
+        self.nombre         = nombre
+        self.apellido       = apellido
+        self.dni            = dni
+        self.telefono       = telefono
+        self.correo         = correo
+        self.fecha_registro = datetime.date.today()
+
+    def __str__(self):
+        return (f"[{self.id_cliente}] {self.nombre} {self.apellido} | "
+                f"DNI:{self.dni} | {self.correo} | {self.telefono}")
+# ──────────────────────────────────────────────────────────────────────────────
+# MODELO — Tematica
+# ──────────────────────────────────────────────────────────────────────────────
+class Tematica:
+    def __init__(self, descripcion, precio_base):
+        self.id_tematica = None
+        self.descripcion = descripcion
+        self.precio_base = precio_base
+        self.estado      = "Disponible"
+
+    def activar(self):
+        self.estado = "Disponible"
+
+    def desactivar(self):
+        self.estado = "No Disponible"
+
+    def estado_disponible(self):
+        return self.estado == "Disponible"
+
+    def __str__(self):
+        return f"[{self.id_tematica}] {self.descripcion} | S/.{self.precio_base:.2f} | {self.estado}"
+#────────────────────────────────────────────────────────────
+# MODELO — Reserva
+# ──────────────────────────────────────────────────────────────────────────────
+class Reserva:
+    def __init__(self, fecha_evento, hora_inicio, hora_fin, direccion,edad_cumpleanero, observaciones, id_cliente, id_tematica):
+        self.id_reserva       = None
+        self.fecha_reserva    = datetime.date.today()
+        self.fecha_evento     = fecha_evento
+        self.hora_inicio      = hora_inicio
+        self.hora_fin         = hora_fin
+        self.direccion        = direccion
+        self.edad_cumpleanero = edad_cumpleanero
+        self.observaciones    = observaciones
+        self.estado           = "Pendiente"
+        self.id_cliente       = id_cliente
+        self.id_tematica      = id_tematica
+
+    def confirmar(self):
+        self.estado = "Confirmada"
+
+    def cancelar(self):
+        self.estado = "Cancelada"
+
+    def completar(self):
+        self.estado = "Completada"
+
+    def __str__(self):
+        return (f"[{self.id_reserva}] Evento:{self.fecha_evento} "
+                f"{self.hora_inicio}-{self.hora_fin} | {self.direccion} | "
+                f"Estado:{self.estado} | Cliente:{self.id_cliente} | Tematica:{self.id_tematica}")
+# ──────────────────────────────────────────────────────────────────────────────
+# MODELO — ServicioAdicional
+# ──────────────────────────────────────────────────────────────────────────────
+class ServicioAdicional:
+    def __init__(self, nombre_servicio, descripcion, precio, id_reserva):
+        self.id_servicio_adicional     = None
+        self.nombre_servicio_adicional = nombre_servicio
+        self.descripcion               = descripcion
+        self.precio                    = precio
+        self.estado                    = "Activo"
+        self.id_reserva                = id_reserva
+
+    def activar(self):
+        self.estado = "Activo"
+
+    def desactivar(self):
+        self.estado = "Inactivo"
+
+    def __str__(self):
+        return (f"[{self.id_servicio_adicional}] {self.nombre_servicio_adicional} | "
+                f"S/.{self.precio:.2f} | {self.estado} | Reserva:{self.id_reserva}")
+# ──────────────────────────────────────────────────────────────────────────────
+# MODELO — Pago
+# ──────────────────────────────────────────────────────────────────────────────
+class Pago:
+    def __init__(self, monto_total, metodo_pago, total_cuotas, id_reserva):
+        self.id_pago       = None
+        self.fecha_pago    = datetime.date.today()
+        self.monto_total   = monto_total
+        self.metodo_pago   = metodo_pago
+        self.estado_pago   = "Pagado" if total_cuotas == 1 else "Pendiente"
+        self.total_cuotas  = total_cuotas
+        self.id_reserva    = id_reserva
+
+    def marcar_pago_parcial(self):
+        self.estado_pago = "Pago parcial"
+
+    def marcar_pagado(self):
+        self.estado_pago = "Pagado"
+
+    def __str__(self):
+        return (f"[{self.id_pago}] {self.fecha_pago} | S/.{self.monto_total:.2f} | "
+                f"{self.metodo_pago} | {self.estado_pago} | Cuotas:{self.total_cuotas} | "
+                f"Reserva:{self.id_reserva}")
+# ──────────────────────────────────────────────────────────────────────────────
+# MODELO — Cuota
+# ──────────────────────────────────────────────────────────────────────────────
+class Cuota:
+    def __init__(self, numero_cuota, monto, fecha_vencimiento, id_pago):
+        self.id_cuota           = None
+        self.numero_cuota       = numero_cuota
+        self.monto              = monto
+        self.fecha_vencimiento  = fecha_vencimiento
+        self.fecha_pago         = None
+        self.estado             = "Pendiente"
+        self.id_pago            = id_pago
+
+    def marcarPagada(self, fecha_pago=None):
+        self.fecha_pago = fecha_pago if fecha_pago else datetime.date.today()
+        self.estado = "Pagada"
+
+    def verificarVencimiento(self):
+        if self.estado == "Pagada":
+            return False
+        if datetime.date.today() > self.fecha_vencimiento:
+            self.estado = "Vencida"
+            return True
+        return False
+
+    def __str__(self):
+        pago_str = self.fecha_pago if self.fecha_pago else "—"
+        return (f"[{self.id_cuota}] Cuota #{self.numero_cuota} | S/.{self.monto:.2f} | "
+                f"Vence:{self.fecha_vencimiento} | Pagada:{pago_str} | "
+                f"{self.estado} | Pago:{self.id_pago}")
