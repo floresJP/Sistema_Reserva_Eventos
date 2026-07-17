@@ -439,3 +439,4 @@ class Cuota:
         return (f"[{self.id_cuota}] Cuota #{self.numero_cuota} | S/.{self.monto:.2f} | "
                 f"Vence:{self.fecha_vencimiento} | Pagada:{pago_str} | "
                 f"{self.estado} | Pago:{self.id_pago}")
+#git
