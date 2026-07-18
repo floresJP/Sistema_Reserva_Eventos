@@ -439,4 +439,589 @@ class Cuota:
         return (f"[{self.id_cuota}] Cuota #{self.numero_cuota} | S/.{self.monto:.2f} | "
                 f"Vence:{self.fecha_vencimiento} | Pagada:{pago_str} | "
                 f"{self.estado} | Pago:{self.id_pago}")
-#git
+        
+# ──────────────────────────────────────────────────────────────────────────────
+# PATRÓN DAO — ClienteDAO
+# ──────────────────────────────────────────────────────────────────────────────
+class ClienteDAO:
+    PREFIJO = "C"
+
+    def __init__(self):
+        self.__bd  = []
+        self.__cid = 1
+        self.__log = Logger()
+        self.__gen = GeneradorID()
+
+    def registrar(self, cliente):
+        if self.buscar_por_correo(cliente.correo):
+            self.__log.warning(f"Correo duplicado: {cliente.correo}")
+            raise CorreoDuplicadoError(cliente.correo)
+        if self.buscar_por_dni(cliente.dni):
+            self.__log.warning(f"DNI duplicado: {cliente.dni}")
+            raise DatoInvalidoError("dni", f"'{cliente.dni}' ya está registrado con otro cliente")
+
+        cliente.id_cliente = self.__gen.generar(self.PREFIJO, self.__cid)
+        self.__cid += 1
+        self.__bd.append(cliente)
+        self.__log.info(f"Cliente registrado: {cliente.nombre} (ID={cliente.id_cliente})")
+        return cliente
+
+    def buscar_por_correo(self, correo):
+        for c in self.__bd:
+            if c.correo == correo: return c
+        return None
+
+    def buscar_por_dni(self, dni):
+        for c in self.__bd:
+            if c.dni == dni: return c
+        return None
+
+    def buscar_por_id(self, id_cliente):
+        for c in self.__bd:
+            if c.id_cliente == id_cliente: return c
+        return None
+
+    def obtener_todos(self):
+        return sorted(self.__bd, key=lambda c: c.nombre)
+
+    def actualizarDatos(self, id_cliente, telefono=None, correo=None):
+        c = self.buscar_por_id(id_cliente)
+        if not c:
+            self.__log.error(f"Actualizar fallido: Cliente ID={id_cliente} no existe")
+            raise ClienteNoEncontradoError(id_cliente)
+        if telefono:  c.telefono  = telefono
+        if correo:    c.correo    = correo
+        self.__log.info(f"Cliente actualizado: ID={id_cliente}")
+        return c
+
+    def obtenerReservas(self, id_cliente, reserva_dao):
+        if not self.buscar_por_id(id_cliente):
+            raise ClienteNoEncontradoError(id_cliente)
+        return reserva_dao.obtener_por_cliente(id_cliente)
+
+    def total(self): return len(self.__bd)
+    
+# ──────────────────────────────────────────────────────────────────────────────
+# PATRÓN DAO — TematicaDAO
+# ──────────────────────────────────────────────────────────────────────────────
+class TematicaDAO:
+    PREFIJO = "T"
+
+    def __init__(self):
+        self.__bd  = []
+        self.__cid = 1
+        self.__log = Logger()
+        self.__gen = GeneradorID()
+
+    def insertar(self, tematica):
+        tematica.id_tematica = self.__gen.generar(self.PREFIJO, self.__cid)
+        self.__cid += 1
+        self.__bd.append(tematica)
+        self.__log.info(f"Tematica agregada: {tematica.descripcion} (ID={tematica.id_tematica})")
+        return tematica
+
+    def buscar_por_id(self, id_tematica):
+        for t in self.__bd:
+            if t.id_tematica == id_tematica: return t
+        return None
+
+    def obtener_todos(self):
+        return sorted(self.__bd, key=lambda t: t.descripcion)
+
+    def obtener_disponibles(self):
+        return [t for t in self.__bd if t.estado_disponible()]
+
+    def total(self): return len(self.__bd)
+    
+# ──────────────────────────────────────────────────────────────────────────────
+# PATRÓN DAO — ReservaDAO
+# ──────────────────────────────────────────────────────────────────────────────
+class ReservaDAO:
+    PREFIJO = "R"
+
+    def __init__(self, cliente_dao, tematica_dao):
+        self.__bd  = []
+        self.__cid = 1
+        self.__log = Logger()
+        self.__gen = GeneradorID()
+        self.__cliente_dao  = cliente_dao
+        self.__tematica_dao = tematica_dao
+
+    def crear(self, reserva):
+        if not self.__cliente_dao.buscar_por_id(reserva.id_cliente):
+            self.__log.error(f"Reserva fallida: Cliente ID={reserva.id_cliente} no existe")
+            raise ClienteNoEncontradoError(reserva.id_cliente)
+        if not self.__tematica_dao.buscar_por_id(reserva.id_tematica):
+            self.__log.error(f"Reserva fallida: Tematica ID={reserva.id_tematica} no existe")
+            raise TematicaNoEncontradaError(reserva.id_tematica)
+        reserva.id_reserva = self.__gen.generar(self.PREFIJO, self.__cid)
+        self.__cid += 1
+        self.__bd.append(reserva)
+        self.__log.info(f"Reserva creada: ID={reserva.id_reserva} para Cliente={reserva.id_cliente}")
+        return reserva
+    
+    def buscar_por_id(self, id_reserva):
+        for r in self.__bd:
+            if r.id_reserva == id_reserva: return r
+        return None
+
+    def obtener_por_cliente(self, id_cliente):
+        return [r for r in self.__bd if r.id_cliente == id_cliente]
+
+    def obtener_todos(self):
+        return sorted(self.__bd, key=lambda r: r.fecha_evento)
+
+    def confirmar_reserva(self, id_reserva):
+        r = self.buscar_por_id(id_reserva)
+        if not r:
+            self.__log.error(f"Confirmar fallido: Reserva ID={id_reserva} no existe")
+            raise ReservaNoEncontradaError(id_reserva)
+        r.confirmar()
+        self.__log.info(f"Reserva confirmada: ID={id_reserva}")
+        return r
+
+    def cancelar_reserva(self, id_reserva):
+        r = self.buscar_por_id(id_reserva)
+        if not r:
+            self.__log.error(f"Cancelar fallido: Reserva ID={id_reserva} no existe")
+            raise ReservaNoEncontradaError(id_reserva)
+        r.cancelar()
+        self.__log.info(f"Reserva cancelada: ID={id_reserva}")
+        return r
+
+    def completar_reserva(self, id_reserva):
+        r = self.buscar_por_id(id_reserva)
+        if not r:
+            self.__log.error(f"Completar fallido: Reserva ID={id_reserva} no existe")
+            raise ReservaNoEncontradaError(id_reserva)
+        r.completar()
+        self.__log.info(f"Reserva completada: ID={id_reserva}")
+        return r
+
+    def total(self): return len(self.__bd)
+# ──────────────────────────────────────────────────────────────────────────────
+# PATRÓN DAO — ServicioAdicionalDAO
+# ──────────────────────────────────────────────────────────────────────────────
+class ServicioAdicionalDAO:
+    PREFIJO = "S"
+    def __init__(self, reserva_dao):
+        self.__bd  = []
+        self.__cid = 1
+        self.__log = Logger()
+        self.__gen = GeneradorID()
+        self.__reserva_dao = reserva_dao
+
+    def insertar(self, servicio):
+        if not self.__reserva_dao.buscar_por_id(servicio.id_reserva):
+            self.__log.error(f"Servicio fallido: Reserva ID={servicio.id_reserva} no existe")
+            raise ReservaNoEncontradaError(servicio.id_reserva)
+        servicio.id_servicio_adicional = self.__gen.generar(self.PREFIJO, self.__cid)
+        self.__cid += 1
+        self.__bd.append(servicio)
+        self.__log.info(
+            f"Servicio adicional agregado: {servicio.nombre_servicio_adicional} "
+            f"(ID={servicio.id_servicio_adicional}) para Reserva={servicio.id_reserva}")
+        return servicio
+
+    def buscar_por_id(self, id_servicio):
+        for s in self.__bd:
+            if s.id_servicio_adicional == id_servicio: return s
+        return None
+
+    def obtener_por_reserva(self, id_reserva):
+        return [s for s in self.__bd if s.id_reserva == id_reserva]
+
+    def obtener_todos(self):
+        return sorted(self.__bd, key=lambda s: s.nombre_servicio_adicional)
+
+    def calcularTotal(self, id_reserva):
+        servicios = self.obtener_por_reserva(id_reserva)
+        return sum(s.precio for s in servicios)
+
+    def eliminar(self, id_servicio):
+        s = self.buscar_por_id(id_servicio)
+        if not s:
+            self.__log.error(f"Eliminar fallido: Servicio ID={id_servicio} no existe")
+            raise ServicioAdicionalNoEncontradoError(id_servicio)
+        self.__bd.remove(s)
+        self.__log.info(f"Servicio adicional eliminado: {s.nombre_servicio_adicional} (ID={id_servicio})")
+        return True
+
+    def total(self): return len(self.__bd)
+    
+# ──────────────────────────────────────────────────────────────────────────────
+# PATRÓN DAO — PagoDAO
+# ──────────────────────────────────────────────────────────────────────────────
+class PagoDAO:
+    PREFIJO = "P"
+    def __init__(self, reserva_dao):
+        self.__bd  = []
+        self.__cid = 1
+        self.__log = Logger()
+        self.__gen = GeneradorID()
+        self.__reserva_dao = reserva_dao
+
+    def registrar(self, pago):
+        if not self.__reserva_dao.buscar_por_id(pago.id_reserva):
+            self.__log.error(f"Pago fallido: Reserva ID={pago.id_reserva} no existe")
+            raise ReservaNoEncontradaError(pago.id_reserva)
+        pago.id_pago = self.__gen.generar(self.PREFIJO, self.__cid)
+        self.__cid += 1
+        self.__bd.append(pago)
+        self.__log.info(
+            f"Pago registrado: {pago.id_pago} S/.{pago.monto_total:.2f} "
+            f"({pago.metodo_pago}) para Reserva={pago.id_reserva}")
+        return pago
+
+    def buscar_por_id(self, id_pago):
+        for p in self.__bd:
+            if p.id_pago == id_pago: return p
+        return None
+
+    def obtener_por_reserva(self, id_reserva):
+        return [p for p in self.__bd if p.id_reserva == id_reserva]
+
+    def obtener_todos(self):
+        return sorted(self.__bd, key=lambda p: p.fecha_pago)
+
+    def marcar_pagado(self, id_pago):
+        p = self.buscar_por_id(id_pago)
+        if not p:
+            self.__log.error(f"Marcar pagado fallido: Pago ID={id_pago} no existe")
+            raise PagoNoEncontradoError(id_pago)
+        p.marcar_pagado()
+        self.__log.info(f"Pago marcado como Pagado: ID={id_pago}")
+        return p
+
+    def total(self): return len(self.__bd)
+# ──────────────────────────────────────────────────────────────────────────────
+# PATRÓN DAO — CuotaDAO
+# ──────────────────────────────────────────────────────────────────────────────
+class CuotaDAO:
+    PREFIJO = "Q"
+    def __init__(self, pago_dao):
+        self.__bd  = []
+        self.__cid = 1
+        self.__log = Logger()
+        self.__gen = GeneradorID()
+        self.__pago_dao = pago_dao
+
+    def insertar(self, cuota):
+        if not self.__pago_dao.buscar_por_id(cuota.id_pago):
+            self.__log.error(f"Cuota fallida: Pago ID={cuota.id_pago} no existe")
+            raise PagoNoEncontradoError(cuota.id_pago)
+
+        cuota.id_cuota = self.__gen.generar(self.PREFIJO, self.__cid)
+        self.__cid += 1
+        self.__bd.append(cuota)
+        self.__log.info(f"Cuota creada: {cuota.id_cuota} #{cuota.numero_cuota} para Pago={cuota.id_pago}")
+        return cuota
+
+    def generarCuotas(self, pago):
+        # BUG CORREGIDO: antes, la creacion e insercion de la cuota solo
+        # ocurria dentro del "else", por lo que la ULTIMA cuota (i == n)
+        # nunca se creaba. Ahora vencimiento/cuota/insertar/append
+        # se ejecutan siempre, sin importar si es la ultima cuota o no.
+        n = pago.total_cuotas
+        monto_cuota = round(pago.monto_total / n, 2)
+        cuotas_creadas = []
+
+        for i in range(1, n + 1):
+            if i == n:
+                monto = round(pago.monto_total - monto_cuota * (n - 1), 2)
+            else:
+                monto = monto_cuota
+            vencimiento = self.__sumar_meses(pago.fecha_pago, i - 1)
+            cuota = Cuota(i, monto, vencimiento, pago.id_pago)
+            self.insertar(cuota)
+            cuotas_creadas.append(cuota)
+
+        self.__log.info(f"Generadas {n} cuotas para Pago={pago.id_pago}")
+        return cuotas_creadas
+
+    def __sumar_meses(self, fecha, meses):
+        mes = fecha.month - 1 + meses
+        anio = fecha.year + mes // 12
+        mes = mes % 12 + 1
+        dia = min(fecha.day, [31,29 if anio % 4 == 0 else 28,31,30,31,30,31,31,30,31,30,31][mes - 1])
+        return datetime.date(anio, mes, dia)
+
+    def buscar_por_id(self, id_cuota):
+        for c in self.__bd:
+            if c.id_cuota == id_cuota: return c
+        return None
+
+    def obtener_por_pago(self, id_pago):
+        return sorted(
+            [c for c in self.__bd if c.id_pago == id_pago],
+            key=lambda c: c.numero_cuota)
+        
+    def obtener_todos(self):
+        return sorted(self.__bd, key=lambda c: c.fecha_vencimiento)
+
+    def marcar_pagada(self, id_cuota, fecha_pago=None):
+        c = self.buscar_por_id(id_cuota)
+        if not c:
+            self.__log.error(f"Marcar pagada fallido: Cuota ID={id_cuota} no existe")
+            raise CuotaNoEncontradaError(id_cuota)
+        c.marcarPagada(fecha_pago)
+        self.__log.info(f"Cuota marcada como Pagada: ID={id_cuota}")
+        return c
+
+    def total(self): return len(self.__bd)
+    
+
+# ──────────────────────────────────────────────────────────────────────────────
+# CAPA DE VISTA — Funciones del menú
+# Cada llamada a pedir_dato() ahora recibe un OBJETO validador ya creado
+# ──────────────────────────────────────────────────────────────────────────────
+def mostrar_menu(cfg):
+    print(f"\n{'=' * 50}")
+    print(f"  {cfg.nombre} v{cfg.version}")
+    print(f"  {cfg.empresa}")
+    print(f"{'=' * 50}")
+    print("  1. Registrar cliente")
+    print("  2. Agregar tematica")
+    print("  3. Crear reserva")
+    print("  4. Agregar servicio adicional")
+    print("  5. Registrar pago (genera cuotas automáticamente)")
+    print("  6. Marcar cuota como pagada")
+    print("  7. Listar clientes")
+    print("  8. Listar tematicas")
+    print("  9. Listar reservas")
+    print("  10. Listar servicios de una reserva")
+    print("  11. Listar pagos de una reserva")
+    print("  12. Listar cuotas de un pago")
+    print("  13. Ver reservas de un cliente")
+    print("  14. Confirmar reserva")
+    print("  15. Cancelar reserva")
+    print("  16. Completar reserva")
+    print("  17. Ver historial de logs")
+    print("  0. Salir")
+    print(f"{'=' * 50}")
+
+def registrar_cliente(cdao):
+    print("\n--- REGISTRAR CLIENTE ---")
+    nombre    = pedir_dato("  Nombre    : ", ValidadorNombre("nombre"))
+    apellido  = pedir_dato("  Apellido  : ", ValidadorNombre("apellido"))
+    dni       = pedir_dato("  DNI (8 dígitos)      : ", ValidadorDNI())
+    telefono  = pedir_dato("  Telefono (9 dígitos) : ", ValidadorTelefono())
+    correo    = pedir_dato("  Correo    : ", ValidadorCorreo())
+    try:
+        c = cdao.registrar(Cliente(nombre, apellido, dni, telefono, correo))
+        print(f"  OK Cliente registrado con ID={c.id_cliente}")
+    except (DatoInvalidoError, CorreoDuplicadoError) as ex:
+        print(f"  ERROR: {ex}")
+
+def agregar_tematica(tdao):
+    print("\n--- AGREGAR TEMATICA ---")
+    descripcion = pedir_dato("  Descripcion : ", ValidadorDireccion("descripcion"))
+    precio      = pedir_dato("  Precio base : ", ValidadorPrecio("precio_base"))
+    t = tdao.insertar(Tematica(descripcion, precio))
+    print(f"  OK Tematica agregada con ID={t.id_tematica}")
+
+def crear_reserva(rdao):
+    print("\n--- CREAR RESERVA ---")
+    id_cliente   = pedir_dato("  ID Cliente (ej. C001) : ", ValidadorCodigo("C", "id_cliente"))
+    id_tematica  = pedir_dato("  ID Tematica (ej. T001): ", ValidadorCodigo("T", "id_tematica"))
+    fecha_evento = pedir_dato("  Fecha evento (YYYY-MM-DD): ", ValidadorFecha("fecha_evento"))
+    hora_inicio  = pedir_dato("  Hora inicio (HH:MM) : ", ValidadorHora("hora_inicio"))
+    hora_fin     = pedir_dato("  Hora fin    (HH:MM) : ", ValidadorHora("hora_fin"))
+    direccion    = pedir_dato("  Direccion del evento: ", ValidadorDireccion("direccion"))
+
+    edad = pedir_dato("  Edad cumpleañero (Enter si no aplica): ",ValidadorEnteroPositivo("edad_cumpleanero"),
+                    opcional=True, valor_si_vacio=None)
+    observ = input("  Observaciones (Enter para omitir)   : ").strip() or None
+    try:
+        r = rdao.crear(Reserva(fecha_evento, hora_inicio, hora_fin, direccion,
+                                edad, observ, id_cliente, id_tematica))
+        print(f"  OK Reserva creada con ID={r.id_reserva}")
+    except (ClienteNoEncontradoError, TematicaNoEncontradaError, DatoInvalidoError) as ex:
+        print(f"  ERROR: {ex}")
+
+def agregar_servicio(sdao):
+    print("\n--- AGREGAR SERVICIO ADICIONAL ---")
+    id_reserva  = pedir_dato("  ID Reserva (ej. R001): ", ValidadorCodigo("R", "id_reserva"))
+    nombre      = pedir_dato("  Nombre del servicio  : ", ValidadorTextoGeneral("nombre_servicio_adicional"))
+    descripcion = pedir_dato("  Descripcion          : ", ValidadorTextoGeneral("descripcion"))
+    precio      = pedir_dato("  Precio               : ", ValidadorPrecio("precio"))
+    try:
+        s = sdao.insertar(ServicioAdicional(nombre, descripcion, precio, id_reserva))
+        print(f"  OK Servicio agregado con ID={s.id_servicio_adicional}")
+    except ReservaNoEncontradaError as ex:
+        print(f"  ERROR: {ex}")
+
+def registrar_pago(pdao, contexto):
+    tdao, rdao, sdao, cuota_dao = contexto
+    print("\n--- REGISTRAR PAGO ---")
+    id_reserva = pedir_dato("  ID Reserva (ej. R001): ", ValidadorCodigo("R", "id_reserva"))
+
+    reserva = rdao.buscar_por_id(id_reserva)
+    if not reserva:
+        print(f"  ERROR: {ReservaNoEncontradaError(id_reserva)}")
+        return
+
+    tematica = tdao.buscar_por_id(reserva.id_tematica)
+    monto_sugerido = (tematica.precio_base if tematica else 0) + sdao.calcularTotal(id_reserva)
+    print(f"  (Monto sugerido según tematica + servicios: S/.{monto_sugerido:.2f})")
+
+    monto        = pedir_dato("  Monto total   : ", ValidadorPrecio("monto_total"))
+    metodo       = pedir_dato("  Metodo de pago (YAPE/PLIN/TRANSFERENCIA/EFECTIVO/TARJETA): ", ValidadorMetodoPago())
+    total_cuotas = pedir_dato("  Numero de cuotas: ", ValidadorEnteroPositivo("total_cuotas"))
+
+    try:
+        p = pdao.registrar(Pago(monto, metodo, total_cuotas, id_reserva))
+        print(f"  OK Pago registrado con ID={p.id_pago} (estado inicial: {p.estado_pago})")
+        cuotas = cuota_dao.generarCuotas(p)
+        print(f"  OK Se generaron {len(cuotas)} cuota(s):")
+        for c in cuotas:
+            print(f"    {c}")
+    except ReservaNoEncontradaError as ex:
+        print(f"  ERROR: {ex}")
+
+def marcar_cuota_pagada(cuota_dao):
+    print("\n--- MARCAR CUOTA COMO PAGADA ---")
+    id_cuota = pedir_dato("  ID Cuota (ej. Q001): ", ValidadorCodigo("Q", "id_cuota"))
+    try:
+        c = cuota_dao.marcar_pagada(id_cuota)
+        print(f"  OK Cuota marcada como pagada: {c}")
+    except CuotaNoEncontradaError as ex:
+        print(f"  ERROR: {ex}")
+
+def listar_clientes(cdao):
+    print("\n--- CLIENTES ---")
+    clientes = cdao.obtener_todos()
+    if clientes:
+        for c in clientes: print(f"  {c}")
+    else:
+        print("  (No hay clientes registrados)")
+
+def listar_tematicas(tdao):
+    print("\n--- TEMATICAS ---")
+    tematicas = tdao.obtener_todos()
+    if tematicas:
+        for t in tematicas: print(f"  {t}")
+    else:
+        print("  (No hay tematicas registradas)")
+
+def listar_reservas(rdao):
+    print("\n--- RESERVAS ---")
+    reservas = rdao.obtener_todos()
+    if reservas:
+        for r in reservas: print(f"  {r}")
+    else:
+        print("  (No hay reservas registradas)")
+
+def listar_servicios_reserva(sdao):
+    print("\n--- SERVICIOS DE UNA RESERVA ---")
+    id_reserva = pedir_dato("  ID Reserva (ej. R001): ", ValidadorCodigo("R", "id_reserva"))
+    servicios = sdao.obtener_por_reserva(id_reserva)
+    if servicios:
+        for s in servicios: print(f"  {s}")
+        print(f"  TOTAL servicios: S/.{sdao.calcularTotal(id_reserva):.2f}")
+    else:
+        print("  (Esta reserva no tiene servicios adicionales)")
+
+def listar_pagos_reserva(pdao):
+    print("\n--- PAGOS DE UNA RESERVA ---")
+    id_reserva = pedir_dato("  ID Reserva (ej. R001): ", ValidadorCodigo("R", "id_reserva"))
+    pagos = pdao.obtener_por_reserva(id_reserva)
+    if pagos:
+        for p in pagos: print(f"  {p}")
+    else:
+        print("  (Esta reserva no tiene pagos registrados)")
+
+def listar_cuotas_pago(cuota_dao):
+    print("\n--- CUOTAS DE UN PAGO ---")
+    id_pago = pedir_dato("  ID Pago (ej. P001): ", ValidadorCodigo("P", "id_pago"))
+    cuotas = cuota_dao.obtener_por_pago(id_pago)
+    if cuotas:
+        for c in cuotas: print(f"  {c}")
+    else:
+        print("  (Este pago no tiene cuotas registradas)")
+
+def ver_reservas_cliente(cdao, rdao):
+    print("\n--- RESERVAS DE UN CLIENTE ---")
+    id_cliente = pedir_dato("  ID del cliente (ej. C001): ", ValidadorCodigo("C", "id_cliente"))
+    try:
+        reservas = cdao.obtenerReservas(id_cliente, rdao)
+        if reservas:
+            for r in reservas: print(f"  {r}")
+        else:
+            print("  (Este cliente no tiene reservas)")
+    except (ClienteNoEncontradoError, DatoInvalidoError) as ex:
+        print(f"  ERROR: {ex}")
+
+def confirmar_reserva(rdao):
+    print("\n--- CONFIRMAR RESERVA ---")
+    id_reserva = pedir_dato("  ID de la reserva (ej. R001): ", ValidadorCodigo("R", "id_reserva"))
+    try:
+        rdao.confirmar_reserva(id_reserva)
+        print(f"  OK Reserva ID={id_reserva} confirmada")
+    except (ReservaNoEncontradaError, DatoInvalidoError) as ex:
+        print(f"  ERROR: {ex}")
+
+def cancelar_reserva(rdao):
+    print("\n--- CANCELAR RESERVA ---")
+    id_reserva = pedir_dato("  ID de la reserva (ej. R001): ", ValidadorCodigo("R", "id_reserva"))
+    try:
+        rdao.cancelar_reserva(id_reserva)
+        print(f"  OK Reserva ID={id_reserva} cancelada")
+    except (ReservaNoEncontradaError, DatoInvalidoError) as ex:
+        print(f"  ERROR: {ex}")
+
+def completar_reserva(rdao):
+    print("\n--- COMPLETAR RESERVA ---")
+    id_reserva = pedir_dato("  ID de la reserva (ej. R001): ", ValidadorCodigo("R", "id_reserva"))
+    try:
+        rdao.completar_reserva(id_reserva)
+        print(f"  OK Reserva ID={id_reserva} completada")
+    except (ReservaNoEncontradaError, DatoInvalidoError) as ex:
+        print(f"  ERROR: {ex}")
+# ──────────────────────────────────────────────────────────────────────────────
+# ORQUESTADOR — main()
+# ──────────────────────────────────────────────────────────────────────────────
+def main():
+    cfg   = SistemaConfig()
+    cdao  = ClienteDAO()
+    tdao  = TematicaDAO()
+    rdao  = ReservaDAO(cdao, tdao)
+    sdao  = ServicioAdicionalDAO(rdao)
+    pdao  = PagoDAO(rdao)
+    qdao  = CuotaDAO(pdao)
+
+    while True:
+        mostrar_menu(cfg)
+        opcion = input("  Elige una opción: ").strip()
+
+        try:
+            match opcion:
+                case "1":  registrar_cliente(cdao)
+                case "2":  agregar_tematica(tdao)
+                case "3":  crear_reserva(rdao)
+                case "4":  agregar_servicio(sdao)
+                case "5":  registrar_pago(pdao, (tdao, rdao, sdao, qdao))
+                case "6":  marcar_cuota_pagada(qdao)
+                case "7":  listar_clientes(cdao)
+                case "8":  listar_tematicas(tdao)
+                case "9":  listar_reservas(rdao)
+                case "10": listar_servicios_reserva(sdao)
+                case "11": listar_pagos_reserva(pdao)
+                case "12": listar_cuotas_pago(qdao)
+                case "13": ver_reservas_cliente(cdao, rdao)
+                case "14": confirmar_reserva(rdao)
+                case "15": cancelar_reserva(rdao)
+                case "16": completar_reserva(rdao)
+                case "17": Logger().mostrar_logs()
+                case "0":
+                    Logger().info("Sistema cerrado por el usuario")
+                    print("\n  Hasta luego.")
+                    break
+                case _:
+                    print("  Opción no válida, elige entre 0 y 17")
+        except Exception as ex:
+            Logger().error(f"Error inesperado: {ex}")
+            print(f"  ERROR INESPERADO: {ex}")
+
+if __name__ == "__main__":
+    main()
