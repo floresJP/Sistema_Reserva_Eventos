@@ -1,4 +1,5 @@
 # main.py importaciones para corra correctamente 
+from config.base_datos import inicializar
 from config.sistema_config import SistemaConfig
 from config.logger import Logger
 from dao.cliente_dao import ClienteDAO
@@ -17,6 +18,7 @@ from vistas.menu import (
 # ORQUESTADOR — main()
 # ─────────────────────────────────────────────────
 def main():
+    inicializar() 
     cfg   = SistemaConfig()
     cdao  = ClienteDAO()
     tdao  = TematicaDAO()
