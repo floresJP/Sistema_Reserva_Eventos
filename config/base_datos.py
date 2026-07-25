@@ -42,6 +42,7 @@ def inicializar():
 # NUMERIC(10,2): tipo de dato exacto para montos de dinero — 10 dígitos en total,
 # 2 de ellos decimales (ej. 12345678.90). A diferencia de FLOAT, no tiene errores
 # de redondeo, es el tipo recomendado para precios y montos.
+#Tabla tematica
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tematica (
             id_tematica  VARCHAR(4) PRIMARY KEY,
@@ -69,7 +70,7 @@ def inicializar():
             id_tematica      VARCHAR(4) NOT NULL REFERENCES tematica(id_tematica)
         )
     """)
-
+#Tabla servicio_adicional
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS servicio_adicional (
             id_servicio_adicional     VARCHAR(4) PRIMARY KEY,
@@ -80,7 +81,7 @@ def inicializar():
             id_reserva                VARCHAR(4) NOT NULL REFERENCES reserva(id_reserva)
         )
     """)
-
+#Tabla Pago
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS pago (
             id_pago      VARCHAR(4) PRIMARY KEY,
@@ -92,7 +93,7 @@ def inicializar():
             id_reserva   VARCHAR(4) NOT NULL REFERENCES reserva(id_reserva)
         )
     """)
-
+# Tabla Cuota
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS cuota (
             id_cuota          VARCHAR(4) PRIMARY KEY,
