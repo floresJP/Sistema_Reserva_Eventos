@@ -132,7 +132,7 @@ class ValidadorDireccion(ValidadorBase):
             raise DatoInvalidoError(self._campo, "no puede estar vacía")
         if len(texto) < 5:
             raise DatoInvalidoError(self._campo, "debe tener al menos 5 caracteres")
-        return texto
+        return texto.title()
 
 class ValidadorTextoGeneral(ValidadorBase):
     # A diferencia de ValidadorNombre, este SÍ permite números
