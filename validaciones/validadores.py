@@ -13,6 +13,10 @@ class ClienteNoEncontradoError(Exception):
 class CorreoDuplicadoError(Exception):
     def __init__(self, correo):
         super().__init__(f"Correo '{correo}' ya registrado")
+        
+class ClienteConReservasError(Exception):
+    def __init__(self, id_cliente):
+        super().__init__(f"Cliente ID={id_cliente} no se puede eliminar: tiene reservas asociadas")
 
 class TematicaNoEncontradaError(Exception):
     def __init__(self, id_tematica):
