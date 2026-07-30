@@ -1,8 +1,9 @@
 # dao/tematica_dao.py
+import psycopg2
 from config.logger import Logger
 from config.base_datos import obtener_conexion
 from modelos.tematica import Tematica
-from validaciones.validadores import GeneradorID
+from validaciones.validadores import GeneradorID, TematicaNoEncontradaError, TematicaConReservasError
 # ──────────────────────────────────────────────────────────────────────────────
 # PATRÓN DAO — TematicaDAO
 # ──────────────────────────────────────────────────────────────────────────────
@@ -64,6 +65,59 @@ class TematicaDAO:
         cursor.close()
         conn.close()        
         return [self.__fila_a_tematica(f) for f in filas]
+    def actualizar(self, id_tematica, descripcion=None, precio_base=None, estado=None):
+        # Paso 1: Verificar que la tematica exista
+        t = self.buscar_por_id(id_tematica)
+        if not t:
+            self.__log.error(f"Actualizar fallido: Tematica ID={id_tematica} no existe")
+            raise TematicaNoEncontradaError(id_tematica)
+
+        # Paso 2: Si no se pasó un dato nuevo, se mantiene el valor actual
+        nueva_descripcion = descripcion if descripcion else t.descripcion
+        nuevo_precio_base = precio_base if precio_base is not None else t.precio_base
+        nuevo_estado = estado if estado else t.estado
+
+        # Paso 3: Ejecutar el UPDATE en PostgreSQL
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE tematica SET descripcion=%s, precio_base=%s, estado=%s WHERE id_tematica=%s",
+            (nueva_descripcion, nuevo_precio_base, nuevo_estado, id_tematica)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        # Paso 4: Actualizar también el objeto en memoria para devolverlo actualizado
+        t.descripcion = nueva_descripcion
+        t.precio_base = nuevo_precio_base
+        t.estado = nuevo_estado
+        self.__log.info(f"Tematica actualizada: ID={id_tematica}")
+        return t
+
+    def eliminar(self, id_tematica):
+        # Paso 1: Verificar que la tematica exista antes de intentar eliminarla
+        t = self.buscar_por_id(id_tematica)
+        if not t:
+            self.__log.error(f"Eliminar fallido: Tematica ID={id_tematica} no existe")
+            raise TematicaNoEncontradaError(id_tematica)
+
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM tematica WHERE id_tematica = %s", (id_tematica,))
+            conn.commit()
+        except psycopg2.errors.ForeignKeyViolation:
+            conn.rollback()
+            cursor.close()
+            conn.close()
+            self.__log.warning(f"Eliminar fallido: Tematica ID={id_tematica} tiene reservas asociadas")
+            raise TematicaConReservasError(id_tematica)
+
+        cursor.close()
+        conn.close()
+        self.__log.info(f"Tematica eliminada: {t.descripcion} (ID={id_tematica})")
+        return True
 
     def total(self):
         # Cuenta cuántas tematicas hay guardadas en la base de datos
@@ -79,11 +133,11 @@ class TematicaDAO:
         # y devuelve el próximo número consecutivo a usar en el ID
         conn = obtener_conexion()
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) AS total FROM tematica")
-        total = cursor.fetchone()["total"]
+        cursor.execute("SELECT MAX(CAST(SUBSTRING(id_tematica FROM 2) AS INTEGER)) AS maximo FROM tematica")
+        resultado = cursor.fetchone()["maximo"]
         cursor.close()
         conn.close()
-        return total + 1
+        return (resultado or 0) + 1
 
     def __fila_a_tematica(self, fila):
         # Convierte una fila de PostgreSQL (diccionario, por RealDictCursor)

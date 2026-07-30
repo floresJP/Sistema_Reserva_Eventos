@@ -38,7 +38,7 @@ class CuotaNoEncontradaError(Exception):
     def __init__(self, id_cuota):
         super().__init__(f"Cuota ID={id_cuota} no encontrada")
 
-class DatoInvalidoError(Exception):
+class DatoInvalidoError(ValueError):
     def __init__(self, campo, motivo):
         super().__init__(f"Dato inválido en '{campo}': {motivo}")
         
@@ -48,7 +48,7 @@ class DatoInvalidoError(Exception):
 # ──────────────────────────────────────────────────────────────────────────────
 class GeneradorID:
     def generar(self, prefijo, numero):
-        if numero > 999:
+        if numero < 1 or numero > 999:
             raise DatoInvalidoError("id", f"límite de códigos alcanzado para el prefijo '{prefijo}'")
         return f"{prefijo}{numero:03d}"
     
@@ -74,8 +74,7 @@ class ValidadorNombre(ValidadorBase):
         texto = texto.strip()
         if not texto:
             raise DatoInvalidoError(self._campo, "no puede estar vacío")
-        # regex: solo letras (con tildes y ñ) y espacios. Rechaza números.
-        if not re.match(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$", texto):
+        if not re.fullmatch(r"[A-Za-zÁÉÍÓÚáéíóúÑñ ]+", texto):
             raise DatoInvalidoError(self._campo, "solo se permiten letras y espacios (sin números)")
         # .title() convierte "juan perez" -> "Juan Perez"
         return texto.title()
@@ -89,7 +88,7 @@ class ValidadorDNI(ValidadorBase):
         if not texto:
             raise DatoInvalidoError(self._campo, "no puede estar vacío")
         # \d{8} = exactamente 8 dígitos, ni más ni menos, sin letras.
-        if not re.match(r"^\d{8}$", texto):
+        if not re.fullmatch(r"\d{8}", texto):
             raise DatoInvalidoError(self._campo, "debe tener exactamente 8 dígitos numéricos (sin letras)")
         return texto
 
@@ -102,7 +101,7 @@ class ValidadorTelefono(ValidadorBase):
         if not texto:
             raise DatoInvalidoError(self._campo, "no puede estar vacío")
         # \d{9} = exactamente 9 dígitos, igual que telefono VARCHAR(9) en el SQL.
-        if not re.match(r"^\d{9}$", texto):
+        if not re.fullmatch(r"\d{9}", texto):
             raise DatoInvalidoError(self._campo, "debe tener exactamente 9 dígitos numéricos (sin letras)")
         return texto
 
@@ -116,13 +115,13 @@ class ValidadorCorreo(ValidadorBase):
         if not texto:
             raise DatoInvalidoError(self._campo, "no puede estar vacío")
         # Formato básico usuario@dominio.ext
-        if not re.match(r"^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$", texto):
+        if not re.fullmatch(r"[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$", texto):
             raise DatoInvalidoError(self._campo, "formato inválido, debe ser tipo usuario@dominio.com")
         return texto
 
 class ValidadorDireccion(ValidadorBase):
-    # Se sigue usando para la direccion del EVENTO en Reserva
-    # (ya no se usa para Cliente, esa columna fue eliminada del esquema).
+    
+    # usando para la direccion del EVENTO en Reserva
     def __init__(self, campo="direccion"):
         super().__init__(campo)
 
@@ -133,7 +132,18 @@ class ValidadorDireccion(ValidadorBase):
         if len(texto) < 5:
             raise DatoInvalidoError(self._campo, "debe tener al menos 5 caracteres")
         return texto.title()
+class TematicaConReservasError(Exception):
+    def __init__(self, id_tematica):
+        super().__init__(f"Tematica ID={id_tematica} no se puede eliminar: tiene reservas asociadas")
 
+class PagoConCuotasError(Exception):
+    def __init__(self, id_pago):
+        super().__init__(f"Pago ID={id_pago} no se puede eliminar: tiene cuotas asociadas")
+        
+class ReservaConDependenciasError(Exception):
+    def __init__(self, id_reserva):
+        super().__init__(f"Reserva ID={id_reserva} no se puede eliminar: tiene servicios adicionales o pagos asociados")
+        
 class ValidadorTextoGeneral(ValidadorBase):
     # A diferencia de ValidadorNombre, este SÍ permite números
     # (útil para "nombre_servicio_adicional" tipo "DJ y sonido 4h").
@@ -151,11 +161,15 @@ class ValidadorTextoGeneral(ValidadorBase):
 class ValidadorPrecio(ValidadorBase):
     def __init__(self, campo="precio"):
         super().__init__(campo)
-
-    def validar(self, texto):
-        texto = texto.strip()
+        
+    def validar(self, valor):
+        # Si ya viene como número (float/int, típico de Pydantic/API),
+        # lo usamos directo. Si viene como texto (típico de input() en consola),
+        # lo convertimos primero.
+        if isinstance(valor, str):
+            valor = valor.strip()
         try:
-            valor = float(texto)
+            valor = float(valor)
         except ValueError:
             raise DatoInvalidoError(self._campo, "debe ser un número (ej. 150.50)")
         if valor < 0:
@@ -166,11 +180,12 @@ class ValidadorEnteroPositivo(ValidadorBase):
     def __init__(self, campo="valor"):
         super().__init__(campo)
 
-    def validar(self, texto):
-        texto = texto.strip()
+    def validar(self, valor):
+        if isinstance(valor, str):
+            valor = valor.strip()
         try:
-            valor = int(texto)
-        except ValueError:
+            valor = int(valor)
+        except (ValueError, TypeError):
             raise DatoInvalidoError(self._campo, "debe ser un número entero (sin letras)")
         if valor <= 0:
             raise DatoInvalidoError(self._campo, "debe ser un número mayor a 0")
@@ -183,7 +198,7 @@ class ValidadorHora(ValidadorBase):
     def validar(self, texto):
         texto = texto.strip()
         # HH:MM en formato 24 horas: 00-23 : 00-59
-        if not re.match(r"^([01]\d|2[0-3]):[0-5]\d$", texto):
+        if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", texto):
             raise DatoInvalidoError(self._campo, "formato inválido, debe ser HH:MM (ej. 14:30)")
         return texto
 
@@ -210,7 +225,7 @@ class ValidadorCodigo(ValidadorBase):
     def validar(self, texto):
         texto = texto.strip().upper()
         patron = rf"^{self._prefijo}\d{{3}}$"
-        if not re.match(patron, texto):
+        if not re.fullmatch(patron, texto):
             raise DatoInvalidoError(self._campo, f"debe tener el formato '{self._prefijo}' + 3 dígitos (ej. {self._prefijo}001)")
         return texto
     

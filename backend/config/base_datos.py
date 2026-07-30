@@ -13,7 +13,7 @@ def obtener_conexion():
         dbname=os.getenv("DB_NAME", "bd_sistema_reserva"),
         user=os.getenv("DB_USER", "postgres"),
         # password=os.getenv("DB_PASSWORD", "admi123"), "el password de la maquina donde se corre el Posgred"
-        password=os.getenv("DB_PASSWORD", "admi123"),
+        password=os.getenv("DB_PASSWORD", ""),
         cursor_factory=RealDictCursor,
         )
     return conn

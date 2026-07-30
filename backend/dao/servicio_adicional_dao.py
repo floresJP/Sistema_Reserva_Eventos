@@ -85,6 +85,39 @@ class ServicioAdicionalDAO:
         self.__log.info(f"Servicio adicional eliminado: {s.nombre_servicio_adicional} (ID={id_servicio})")
         return True
 
+    def actualizar(self, id_servicio, nombre_servicio_adicional=None, descripcion=None, precio=None, estado=None):
+        # Paso 1: Verificar que el servicio exista
+        s = self.buscar_por_id(id_servicio)
+        if not s:
+            self.__log.error(f"Actualizar fallido: Servicio ID={id_servicio} no existe")
+            raise ServicioAdicionalNoEncontradoError(id_servicio)
+
+        # Paso 2: Si no se pasó un dato nuevo, se mantiene el valor actual
+        nuevo_nombre = nombre_servicio_adicional if nombre_servicio_adicional else s.nombre_servicio_adicional
+        nueva_descripcion = descripcion if descripcion else s.descripcion
+        nuevo_precio = precio if precio is not None else s.precio
+        nuevo_estado = estado if estado else s.estado
+
+        # Paso 3: Ejecutar el UPDATE en PostgreSQL
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        cursor.execute(
+            """UPDATE servicio_adicional SET nombre_servicio_adicional=%s, descripcion=%s,
+            precio=%s, estado=%s WHERE id_servicio_adicional=%s""",
+            (nuevo_nombre, nueva_descripcion, nuevo_precio, nuevo_estado, id_servicio)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        # Paso 4: Actualizar también el objeto en memoria para devolverlo actualizado
+        s.nombre_servicio_adicional = nuevo_nombre
+        s.descripcion = nueva_descripcion
+        s.precio = nuevo_precio
+        s.estado = nuevo_estado
+        self.__log.info(f"Servicio adicional actualizado: ID={id_servicio}")
+        return s
+
     def total(self):
         conn = obtener_conexion()
         cursor = conn.cursor()
@@ -97,11 +130,11 @@ class ServicioAdicionalDAO:
     def __siguiente_numero(self):
         conn = obtener_conexion()
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) AS total FROM servicio_adicional")
-        total = cursor.fetchone()["total"]
+        cursor.execute("SELECT MAX(CAST(SUBSTRING(id_servicio_adicional FROM 2) AS INTEGER)) AS maximo FROM servicio_adicional")
+        resultado = cursor.fetchone()["maximo"]
         cursor.close()
         conn.close()
-        return total + 1
+        return (resultado or 0)+ 1
 
     def __fila_a_servicio(self, fila):
         s = ServicioAdicional(fila["nombre_servicio_adicional"], fila["descripcion"],

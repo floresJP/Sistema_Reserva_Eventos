@@ -113,6 +113,52 @@ class CuotaDAO:
         c.marcarPagada(nueva_fecha_pago)
         self.__log.info(f"Cuota marcada como Pagada: ID={id_cuota}")
         return c
+    def actualizar(self, id_cuota, monto=None, fecha_vencimiento=None, estado=None):
+        # Paso 1: Verificar que la cuota exista
+        c = self.buscar_por_id(id_cuota)
+        if not c:
+            self.__log.error(f"Actualizar fallido: Cuota ID={id_cuota} no existe")
+            raise CuotaNoEncontradaError(id_cuota)
+
+        # Paso 2: Si no se pasó un dato nuevo, se mantiene el valor actual
+        nuevo_monto = monto if monto is not None else c.monto
+        nueva_fecha_vencimiento = fecha_vencimiento if fecha_vencimiento else c.fecha_vencimiento
+        nuevo_estado = estado if estado else c.estado
+
+        # Paso 3: Ejecutar el UPDATE en PostgreSQL
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE cuota SET monto=%s, fecha_vencimiento=%s, estado=%s WHERE id_cuota=%s",
+            (nuevo_monto, nueva_fecha_vencimiento, nuevo_estado, id_cuota)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        # Paso 4: Actualizar también el objeto en memoria para devolverlo actualizado
+        c.monto = nuevo_monto
+        c.fecha_vencimiento = nueva_fecha_vencimiento
+        c.estado = nuevo_estado
+        self.__log.info(f"Cuota actualizada: ID={id_cuota}")
+        return c
+
+    def eliminar(self, id_cuota):
+        # Paso 1: Verificar que la cuota exista antes de intentar eliminarla
+        c = self.buscar_por_id(id_cuota)
+        if not c:
+            self.__log.error(f"Eliminar fallido: Cuota ID={id_cuota} no existe")
+            raise CuotaNoEncontradaError(id_cuota)
+
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM cuota WHERE id_cuota = %s", (id_cuota,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        self.__log.info(f"Cuota eliminada: {id_cuota}")
+        return True
 
     def total(self):
         conn = obtener_conexion()
@@ -126,11 +172,11 @@ class CuotaDAO:
     def __siguiente_numero(self):
         conn = obtener_conexion()
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) AS total FROM cuota")
-        total = cursor.fetchone()["total"]
+        cursor.execute("SELECT MAX(CAST(SUBSTRING(id_cuota FROM 2) AS INTEGER)) AS maximo FROM cuota")
+        resultado = cursor.fetchone()["maximo"]
         cursor.close()
         conn.close()
-        return total + 1
+        return (resultado or 0) + 1
 
     def __fila_a_cuota(self, fila):
         c = Cuota(fila["numero_cuota"], fila["monto"], fila["fecha_vencimiento"], fila["id_pago"])

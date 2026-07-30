@@ -97,7 +97,7 @@ class ClienteDAO:
         conn.close()
         return [self.__fila_a_cliente(f) for f in filas]
 
-    def actualizarDatos(self, id_cliente, telefono=None, correo=None):
+    def actualizarDatos(self, id_cliente, nombre=None, apellido=None, dni=None,telefono=None, correo=None):
         # Paso 1: Verificar que el cliente exista
         c = self.buscar_por_id(id_cliente)
         if not c:
@@ -105,21 +105,40 @@ class ClienteDAO:
             raise ClienteNoEncontradoError(id_cliente)
 
         # Paso 2: Si no se pasó un dato nuevo, se mantiene el valor actual
+        nuevo_nombre = nombre if nombre else c.nombre
+        nuevo_apellido = apellido if apellido else c.apellido
+        nuevo_dni = dni if dni else c.dni
         nuevo_telefono = telefono if telefono else c.telefono
         nuevo_correo = correo if correo else c.correo
+        
+        # Paso 3: Si el correo cambió, verificar que no choque con OTRO cliente
+        if nuevo_correo != c.correo:
+            existente = self.buscar_por_correo(nuevo_correo)
+            if existente and existente.id_cliente != id_cliente:
+                self.__log.warning(f"Correo duplicado al actualizar: {nuevo_correo}")
+                raise CorreoDuplicadoError(nuevo_correo)
 
-        # Paso 3: Ejecutar el UPDATE en PostgreSQL
+        # Paso 3b: Igual para el DNI, si cambió
+        if nuevo_dni != c.dni:
+            existente = self.buscar_por_dni(nuevo_dni)
+            if existente and existente.id_cliente != id_cliente:
+                self.__log.warning(f"DNI duplicado al actualizar: {nuevo_dni}")
+                raise DatoInvalidoError("dni", f"'{nuevo_dni}' ya está registrado con otro cliente")
+        # Paso 4: Ejecutar el UPDATE en PostgreSQL
         conn = obtener_conexion()
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE cliente SET telefono=%s, correo=%s WHERE id_cliente=%s",
-            (nuevo_telefono, nuevo_correo, id_cliente)
+            "UPDATE cliente SET nombre=%s, apellido=%s, dni=%s, telefono=%s, correo=%s WHERE id_cliente=%s",
+            (nuevo_nombre, nuevo_apellido, nuevo_dni, nuevo_telefono, nuevo_correo, id_cliente)
         )
         conn.commit()
         cursor.close()
         conn.close()
 
-        # Paso 4: Actualizar también el objeto en memoria para devolverlo actualizado
+        # Paso 5: Actualizar también el objeto en memoria para devolverlo actualizado
+        c.nombre = nuevo_nombre
+        c.apellido = nuevo_apellido
+        c.dni = nuevo_dni
         c.telefono = nuevo_telefono
         c.correo = nuevo_correo
         self.__log.info(f"Cliente actualizado: ID={id_cliente}")
@@ -172,11 +191,11 @@ class ClienteDAO:
         # y devuelve el próximo número consecutivo a usar en el ID
         conn = obtener_conexion()
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) AS total FROM cliente")
-        total = cursor.fetchone()["total"]
+        cursor.execute("SELECT MAX(CAST(SUBSTRING(id_cliente FROM 2) AS INTEGER)) AS maximo FROM cliente")
+        resultado = cursor.fetchone()["maximo"]
         cursor.close()
         conn.close()
-        return total + 1
+        return (resultado or 0) + 1
 
     def __fila_a_cliente(self, fila):
         # Convierte una fila de PostgreSQL (diccionario, por RealDictCursor)
