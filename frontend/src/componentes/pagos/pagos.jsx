@@ -1,8 +1,8 @@
 function Pagos() {
     return (
       <div className="container mt-4">
-        <h2>Inicio</h2>
-        <p>Panel principal (en construcción).</p>
+        <h2>Pagos</h2>
+        <p>Gestión de Pagos(en construcción).</p>
       </div>
     );
   }

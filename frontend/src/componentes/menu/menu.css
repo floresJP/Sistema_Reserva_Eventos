@@ -1,0 +1,31 @@
+.eventix-menu {
+  width: 250px;
+  min-height: 100vh;
+  background-color: #171733;
+  transition: width 0.3s ease;
+}
+
+.eventix-menu.collapsed {
+  width: 80px;
+}
+
+.eventix-menu.collapsed .hide-on-collapse {
+  display: none ;
+}
+
+.eventix-menu .nav-link {
+  color: #e5e5f0;
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+.eventix-menu .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.eventix-menu .nav-link.active {
+  background-color: #7c3aed ;
+  color: white ;
+  font-weight: 600;
+}

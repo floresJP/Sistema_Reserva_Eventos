@@ -5,20 +5,21 @@ import Reservas from "./componentes/reservas/reservas";
 import Tematicas from "./componentes/tematicas/tematicas";
 import Pagos from "./componentes/pagos/pagos";
 import Cuotas from "./componentes/cuotas/cuotas";
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate} from 'react-router-dom';
 
 function App() {
   return (
     <>
       <Menu />
       <Routes>
-
+        {/* Redirige la raíz "/" hacia "/inicio" */}
+        <Route path="/" element={<Navigate to="/inicio" replace />} /> 
         <Route path="/inicio" element={<Panel />} />
-        <Route path="/cliente" element={<Clientes />} />
-        <Route path="/reserva" element={<Reservas />} />
-        <Route path="/tematica" element={<Tematicas />} />
-        <Route path="/pago" element={<Pagos />} />
-        <Route path="/cuota" element={<Cuotas />} />
+        <Route path="/clientes" element={<Clientes />} />
+        <Route path="/reservas" element={<Reservas />} />
+        <Route path="/tematicas" element={<Tematicas />} />
+        <Route path="/pagos" element={<Pagos />} />
+        <Route path="/cuotas" element={<Cuotas />} />
 
       </Routes>
     </>
