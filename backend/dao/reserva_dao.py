@@ -1,7 +1,7 @@
 # dao/reserva_dao.py
 import psycopg2
 from config.logger import Logger
-from validaciones.validadores import GeneradorID, ClienteNoEncontradoError, TematicaNoEncontradaError, ReservaNoEncontradaError, ReservaConDependenciasError
+from validaciones.validadores import GeneradorID, ClienteNoEncontradoError, TematicaNoEncontradaError, ReservaNoEncontradaError, ReservaConDependenciasError,DatoInvalidoError
 from config.base_datos import obtener_conexion
 from modelos.reserva import Reserva
 #──────────────────────────────────────────────────────────────────────────────
@@ -130,6 +130,15 @@ class ReservaDAO:
         nueva_direccion = direccion if direccion else r.direccion
         nueva_edad = edad_cumpleanero if edad_cumpleanero is not None else r.edad_cumpleanero
         nuevas_observaciones = observaciones if observaciones is not None else r.observaciones
+                
+        # Paso 2b: Ahora que ya tenemos las DOS horas finales combinadas
+        # (la nueva si vino en la peticion, o la que ya tenia la reserva
+        # si no vino), SI podemos comparar con seguridad.
+        if nueva_hora_fin <= nueva_hora_inicio:
+            self.__log.error(f"Actualizar fallido: Reserva ID={id_reserva} hora_fin <= hora_inicio")
+            raise DatoInvalidoError("hora_fin", "debe ser posterior a hora_inicio")
+        
+        
 
         # Paso 3: Ejecutar el UPDATE en PostgreSQL
         conn = obtener_conexion()
