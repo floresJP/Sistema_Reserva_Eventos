@@ -137,8 +137,6 @@ class ReservaDAO:
         if nueva_hora_fin <= nueva_hora_inicio:
             self.__log.error(f"Actualizar fallido: Reserva ID={id_reserva} hora_fin <= hora_inicio")
             raise DatoInvalidoError("hora_fin", "debe ser posterior a hora_inicio")
-        
-        
 
         # Paso 3: Ejecutar el UPDATE en PostgreSQL
         conn = obtener_conexion()
