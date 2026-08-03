@@ -13,12 +13,12 @@ def obtener_conexion():
         dbname=os.getenv("DB_NAME", "bd_sistema_reserva"),
         user=os.getenv("DB_USER", "postgres"),
         # password=os.getenv("DB_PASSWORD", "admi123"), "el password de la maquina donde se corre el Posgred"
-        password=os.getenv("DB_PASSWORD", ""),
+        password=os.getenv("DB_PASSWORD", "admi123"),
         cursor_factory=RealDictCursor,
         )
     return conn
 
-def inicializar():
+def inicializar():  
     """
     Crea las tablas si aún no existen (equivalente al script SQL Server,
     adaptado a PostgreSQL). Se llama UNA vez al iniciar el sistema.

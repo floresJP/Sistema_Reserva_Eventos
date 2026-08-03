@@ -9,8 +9,9 @@ import { Routes, Route, Navigate} from 'react-router-dom';
 
 function App() {
   return (
-    <>
+    <div className="d-flex">
       <Menu />
+      <main className="flex-grow-1"></main>
       <Routes>
         {/* Redirige la raíz "/" hacia "/inicio" */}
         <Route path="/" element={<Navigate to="/inicio" replace />} /> 
@@ -22,7 +23,7 @@ function App() {
         <Route path="/cuotas" element={<Cuotas />} />
 
       </Routes>
-    </>
+    </div>
   );
 }
 
