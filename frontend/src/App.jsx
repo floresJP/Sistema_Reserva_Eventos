@@ -11,7 +11,7 @@ function App() {
   return (
     <div className="d-flex">
       <Menu />
-      <main className="flex-grow-1">
+      <main className="flex-grow-1" style={{ minWidth: 0 }}>
         <Routes>
           <Route path="/" element={<Navigate to="/inicio" replace />} /> 
           <Route path="/inicio" element={<Panel />} />

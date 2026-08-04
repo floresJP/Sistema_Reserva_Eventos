@@ -23,7 +23,7 @@ def crear_cliente(datos: ClienteCrear):
     cliente = Cliente(datos.nombre, datos.apellido, datos.dni, datos.telefono, datos.correo)
     try:
         return _cliente_dao.registrar(cliente).to_dict()
-    except CorreoDuplicadoError as ex:
+    except CorreoDuplicadoError as ex:                                  
         raise HTTPException(status.HTTP_409_CONFLICT, detail=str(ex))
     except DatoInvalidoError as ex:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(ex))
