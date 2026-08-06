@@ -17,11 +17,17 @@ app = FastAPI(
 )
 
 # ------------------------------------------------------------
-# CORS: permite que React (localhost:5173 o 3000) consuma esta API
+# CORS: permite que React (localhost:5173,5174 o 3000) consuma esta API
 # ------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+                "http://localhost:5174", 
+                "http://localhost:5173",
+                "http://localhost:3000"
+                ],
+    
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -47,3 +53,10 @@ def inicio():
         "version": "1.0",
         "docs": "/docs",
     }
+    
+
+# Documentación automática:
+
+# Swagger UI: http://127.0.0.1:8000/docs
+
+# ReDoc: http://127.0.0.1:8000/redoc
