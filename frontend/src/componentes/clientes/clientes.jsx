@@ -229,7 +229,8 @@ function Clientes() {
         <FaSearch className="position-absolute text-muted" style={{ right: 16, top: "50%", transform: "translateY(-50%)" }} />
       </div>
 
-      <div className="card shadow-sm border-0 rounded-4 p-3">
+      <div className="card shadow-sm border-0 rounded-4 p-3 overflow-auto"
+      style={{ maxHeight: "70vh" }}>
         {error && <div className="alert alert-danger py-2 mb-3">{error}</div>}
 
         {cargando ? (
@@ -241,7 +242,7 @@ function Clientes() {
         ) : (
           <div className="table-responsive">
             <table className="table align-middle mb-0">
-              <thead>
+              <thead className="sticky-top bg-white">
                 <tr className="text-muted small">
                   <th className="fw-semibold">ID</th>
                   <th className="fw-semibold">DNI</th>
@@ -262,6 +263,10 @@ function Clientes() {
                     <td>{c.telefono}</td>
                     <td>{c.correo}</td>
                     <td className="text-end">
+                      {/* d-flex + justify-content-end + gap-2: acciones en fila.
+                          flex-nowrap evita que el segundo botón se baje de línea
+                          cuando la celda se angosta en pantallas chicas. */}
+                          <div className="d-flex justify-content-end gap-2 flex-nowrap">
                       <button
                         type="button"
                         className="btn btn-sm rounded-2 me-2"
@@ -280,6 +285,7 @@ function Clientes() {
                       >
                         <FaTrash size={13} />
                       </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
