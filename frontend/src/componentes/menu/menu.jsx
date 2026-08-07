@@ -16,8 +16,8 @@ import logoTexto from "../../assets/imagenes/txt_logo.png";
 const OPCIONES_MENU = [
   { ruta: "/inicio", icono: <FaHome size={20} />, texto: "Inicio" },
   { ruta: "/clientes", icono: <FaUsers size={20} />, texto: "Clientes" },
-  { ruta: "/reservas", icono: <FaCalendarCheck size={20} />, texto: "Reserva" },
   { ruta: "/tematicas", icono: <FaPalette size={20} />, texto: "Tematicas" },
+  { ruta: "/reservas", icono: <FaCalendarCheck size={20} />, texto: "Reserva" },
   { ruta: "/pagos", icono: <FaCreditCard size={20} />, texto: "Pagos" },
   { ruta: "/cuotas", icono: <FaFileInvoiceDollar size={20} />, texto: "Cuotas" },
 ];
