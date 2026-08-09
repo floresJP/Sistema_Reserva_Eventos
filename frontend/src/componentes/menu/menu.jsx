@@ -9,8 +9,8 @@ import {
   FaCreditCard,
   FaFileInvoiceDollar,
 } from "react-icons/fa";
-import logo from "../../assets/imagenes/logo.png";
-import logoTexto from "../../assets/imagenes/txt_logo.png";
+import logo from "../../assets/imagenes/logos_eventos/logo.png";
+import logoTexto from "../../assets/imagenes/logos_eventos/logo_texto.png";
 
 
 const OPCIONES_MENU = [
