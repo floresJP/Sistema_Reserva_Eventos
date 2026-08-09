@@ -5,6 +5,8 @@ import api from "../api/axios";
 
 // Estado inicial del formulario (alta o edicion)
 const FORMULARIO_VACIO = { nombre: "", apellido: "", dni: "", telefono: "", correo: "" };
+const SOLO_LETRAS = /^[A-Za-zÀ-ÿ\s]+$/;
+const SOLO_NUMEROS = /^[0-9]+$/;
 
 function Clientes() {
   const [clientes, setClientes] = useState([]);
@@ -63,12 +65,45 @@ function Clientes() {
     setIdEditando(null);
     setErrorFormulario("");
   };
-
+  
   const cambiarCampo = (campo) => (e) =>
     setFormulario((f) => ({ ...f, [campo]: e.target.value }));
 
+  // Extrae un mensaje de error SIEMPRE en texto, sin importar qué mande el backend
+  const obtenerMensajeError = (err, fallback) => {
+    const detalle = err.response?.data?.detail;
+    if (!detalle) return fallback;
+    if (typeof detalle === "string") return detalle;
+    if (Array.isArray(detalle)) {
+      return detalle.map((d) => d.msg || JSON.stringify(d)).join(" | ");
+    }
+    return fallback;
+  };
+
+  const validarFormulario = () => {
+    if (!SOLO_LETRAS.test(formulario.nombre.trim())) {
+      return "El nombre solo puede contener letras.";
+    }
+    if (!SOLO_LETRAS.test(formulario.apellido.trim())) {
+      return "El apellido solo puede contener letras.";
+    }
+    if (!SOLO_NUMEROS.test(formulario.dni.trim())) {
+      return "El DNI solo puede contener números.";
+    }
+    if (!SOLO_NUMEROS.test(formulario.telefono.trim())) {
+      return "El teléfono solo puede contener números.";
+      }
+    return "";
+  };
+
   const guardarCliente = (e) => {
     e.preventDefault();
+    const errorValidacion = validarFormulario();
+    if (errorValidacion) {
+        setErrorFormulario(errorValidacion);
+        return;
+    }
+
     setGuardando(true);
     setErrorFormulario("");
 
@@ -82,8 +117,8 @@ function Clientes() {
         cancelarFormulario();
       })
       .catch((err) => {
-        const detalle = err.response?.data?.detail;
-        setErrorFormulario(detalle || "No se pudo guardar el cliente. Revisa los datos.");
+        
+        setErrorFormulario(obtenerMensajeError(err, "No se pudo guardar el cliente. Revisa los datos."));
       })
       .finally(() => setGuardando(false));
   };
@@ -94,8 +129,7 @@ function Clientes() {
       .delete(`/clientes/${cliente.id_cliente}`)
       .then(() => cargarClientes())
       .catch((err) => {
-        const detalle = err.response?.data?.detail;
-        alert(detalle || "No se pudo eliminar el cliente.");
+        alert(obtenerMensajeError(err,"No se pudo eliminar el cliente."));
       });
   };
 
