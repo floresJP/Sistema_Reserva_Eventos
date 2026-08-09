@@ -1,7 +1,7 @@
 // componentes/tematicas.jsx
 import { useEffect, useState } from "react";
 import { FaSearch, FaPen, FaTrash, FaPlus, FaCheck, FaChevronLeft, FaChevronRight, FaImage } from "react-icons/fa";
-import api from ".. /api/axios";
+import api from "../api/axios";
 
 // ────────────────────────────────────────────────
 // CATALOGO DE IMAGENES PREDETERMINADAS
