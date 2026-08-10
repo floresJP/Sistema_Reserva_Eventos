@@ -729,7 +729,7 @@ function Reservas() {
                             "ver servicios adicionales", en modo lectura
                             (ver modalSoloLectura mas arriba en el
                             componente) */}
-                        {r.estado === "Completada" && (
+                        {(r.estado === "Completada"|| r.estado === "Cancelada") && (
                           <button
                             type="button"
                             className="btn btn-sm rounded-2"
@@ -919,10 +919,10 @@ function Reservas() {
                     <input
                       type="text"
                       className="form-control form-control-sm rounded-2"
-                      placeholder="Descripción"
+                      placeholder="Descripción (opcional)"
                       value={formularioServicio.descripcion}
                       onChange={cambiarCampoServicio("descripcion")}
-                      required
+                      
                     />
                   </div>
 
