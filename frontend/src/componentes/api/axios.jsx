@@ -1,9 +1,10 @@
 import axios from "axios";
 
-// Cambia esta URL si tu backend corre en otro host/puerto.
-// (uvicorn api:app --reload, dentro de la carpeta backend/)
+// La URL del backend viene de la variable de entorno VITE_API_URL,
+// definida en el archivo .env (ver .env.example). Si no está definida,
+// usa http://localhost:8000 como valor de respaldo para desarrollo local.
 const api = axios.create({
-baseURL: "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
 });
 
 export default api;
