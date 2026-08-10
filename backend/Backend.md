@@ -138,6 +138,12 @@ Para el detalle completo de parámetros, cuerpos de petición y respuestas, cons
 - Las cuotas de un pago se generan automáticamente al registrar el pago, repartiendo el monto total entre el número de cuotas indicado.
 - Las validaciones de formato (DNI, teléfono, correo, fechas, horas, montos, etc.) están centralizadas en `validaciones/validadores.py` y se reutilizan tanto en los `schemas` de Pydantic como en la capa de acceso a datos.
 
+## Nota sobre `\version-consola-inicial`
+
+Esta carpeta contiene `Eventos_Reserva.py`, la **primera versión** del sistema: un prototipo de consola (sin FastAPI, sin servidor web) hecho antes de migrar a la arquitectura actual del backend (`routers`, `dao`, `modelos`, `schemas`, `validaciones`).
+
+Se conserva solo como referencia del proceso de desarrollo. **No forma parte del backend evaluado** y no se ejecuta como parte de la aplicación (no está importado en `main.py`).
+
 ## Autor
 
 AMPUERO - PASCACIO — Proyecto académico, IESTP "Argentina".
