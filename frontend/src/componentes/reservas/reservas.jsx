@@ -918,7 +918,7 @@ function Reservas() {
                   {/* Estado ahora se ve SIEMPRE, no solo editando.
                       Es un boton (no select): cada click alterna entre
                       Activo/Inactivo via alternarEstadoServicio.
-                      al CREAR (POST) el backend igual ignora este
+                      OJO: al CREAR (POST) el backend igual ignora este
                       valor y pone "Activo" por defecto sin importar lo
                       que se muestre aca -- solo se manda de verdad
                       cuando se esta editando (PUT), ver guardarServicio */}
