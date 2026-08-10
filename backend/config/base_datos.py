@@ -8,12 +8,11 @@ from psycopg2.extras import RealDictCursor
 
 def obtener_conexion():
     conn = psycopg2.connect(
-        host=os.getenv("DB_HOST", "localhost"),
-        port=os.getenv("DB_PORT", "5432"),
-        dbname=os.getenv("DB_NAME", "bd_sistema_reserva"),
-        user=os.getenv("DB_USER", "postgres"),
-        # password=os.getenv("DB_PASSWORD", "admi123"), "el password de la maquina donde se corre el Posgred"
-        password=os.getenv("DB_PASSWORD", "admi123"),
+        host=os.getenv("DB_HOST"),
+        port=os.getenv("DB_PORT"),
+        dbname=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
         cursor_factory=RealDictCursor,
         )
     return conn

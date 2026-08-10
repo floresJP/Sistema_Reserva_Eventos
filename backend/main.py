@@ -1,10 +1,12 @@
 # main.py
+from dotenv import load_dotenv
+load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config.base_datos import inicializar
 from routers import cliente, tematica, reserva, servicio_adicional, pago, cuota
 
-# ------------------------------------------------------------
+# -----------------------------------------------------------
 # APLICACION FASTAPI - Sistema de Reserva de Eventos
 # Genera documentacion automatica en /docs (Swagger UI) y /redoc.
 # ------------------------------------------------------------
