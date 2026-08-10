@@ -1,6 +1,8 @@
 import os
+from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
+load_dotenv()
 
 # Este módulo reemplaza SQLite/SQL Server por PostgreSQL.
 # La conexión usa RealDictCursor para que cada fila se comporte como un
