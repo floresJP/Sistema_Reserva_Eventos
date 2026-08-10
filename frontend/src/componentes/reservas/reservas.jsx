@@ -409,6 +409,18 @@ function Reservas() {
           <div className="row g-4">
             {/* ── COLUMNA IZQUIERDA ── */}
             <div className="col-12 col-md-6">
+              {/* Campo ID: siempre deshabilitado, es solo informativo.
+                  Al crear, el id lo genera el backend (autoincremental),
+                  asi que se muestra el placeholder. Al editar, se ve el
+                  id real de la reserva -- pero igual no se puede tocar. */}
+              <label className="form-label fw-semibold">ID</label>
+              <input
+                type="text"
+                className="form-control rounded-3 py-2 mb-3"
+                placeholder="Se generará automáticamente"
+                value={idEditando ?? ""}
+                disabled
+              />
               <label className="form-label fw-semibold">Cliente</label>
               <select
                 className="form-select rounded-3 py-2 mb-3"
