@@ -4,14 +4,17 @@ import { FaSearch, FaPen, FaTrash, FaPlus, FaCheck, FaListOl } from "react-icons
 import api from "../api/axios";
 
 // Los 5 unicos valores que acepta ValidadorMetodoPago en el backend.
-// Si el usuario elige otro, el backend igual lo rechazaria con 422.
 const METODOS_PAGO = ["YAPE", "PLIN", "TRANSFERENCIA", "EFECTIVO", "TARJETA"];
+
+// Fecha de hoy en formato YYYY-MM-DD, para precargar el input type="date".
+const hoyISO = () => new Date().toISOString().slice(0, 10);
 
 const FORMULARIO_VACIO = {
   id_reserva: "",
   metodo_pago: "",
   total_cuotas: 1,
   monto_total: "",
+  fecha_pago: hoyISO(),
 };
 
 // ────────────────────────────────────────────────
@@ -41,10 +44,6 @@ function Pagos() {
   const [vista, setVista] = useState("lista"); // "lista" | "formulario"
   const [idEditando, setIdEditando] = useState(null);
   const [formulario, setFormulario] = useState(FORMULARIO_VACIO);
-  // Guarda la fecha_pago REAL del pago en edicion, solo para mostrarla
-  // como informativo (deshabilitada). En creacion queda vacia porque
-  // el backend la asigna el mismo al guardar -- no se manda nunca.
-  const [fechaPagoActual, setFechaPagoActual] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [errorFormulario, setErrorFormulario] = useState("");
 
@@ -118,8 +117,7 @@ function Pagos() {
 
   const abrirNuevoPago = () => {
     setIdEditando(null);
-    setFormulario(FORMULARIO_VACIO);
-    setFechaPagoActual("");
+    setFormulario(FORMULARIO_VACIO); // ya trae fecha_pago = hoy
     setErrorFormulario("");
     setVista("formulario");
   };
@@ -131,8 +129,8 @@ function Pagos() {
       metodo_pago: p.metodo_pago,
       total_cuotas: p.total_cuotas,
       monto_total: p.monto_total,
+      fecha_pago: p.fecha_pago, // ya viene en formato YYYY-MM-DD desde el backend
     });
-    setFechaPagoActual(p.fecha_pago);
     setErrorFormulario("");
     setVista("formulario");
   };
@@ -140,7 +138,6 @@ function Pagos() {
   const cancelarFormulario = () => {
     setVista("lista");
     setFormulario(FORMULARIO_VACIO);
-    setFechaPagoActual("");
     setIdEditando(null);
     setErrorFormulario("");
   };
@@ -153,10 +150,10 @@ function Pagos() {
     setGuardando(true);
     setErrorFormulario("");
 
-    // El PUT (edicion) NO incluye id_reserva -- el pago no cambia de
-    // reserva una vez creado (mismo patron que id_cliente/id_tematica
-    // en Reserva). fecha_pago tampoco se manda nunca: el backend la
-    // asigna sola al crear y no se toca despues.
+    // El PUT (edicion) NO incluye id_reserva ni fecha_pago -- ambos son
+    // inmutables una vez creado el pago (PagoActualizar no los acepta,
+    // ver schema). El POST (creacion) SI manda fecha_pago, para poder
+    // registrar pagos que ocurrieron en otro dia distinto a hoy.
     const peticion = idEditando
       ? api.put(`/pagos/${idEditando}`, {
           monto_total: Number(formulario.monto_total),
@@ -168,6 +165,7 @@ function Pagos() {
           metodo_pago: formulario.metodo_pago,
           total_cuotas: Number(formulario.total_cuotas),
           id_reserva: formulario.id_reserva,
+          fecha_pago: formulario.fecha_pago,
         });
 
     peticion
@@ -314,21 +312,25 @@ function Pagos() {
                 required
               />
 
-              {/* Fecha de pago: se ve en el formulario siguiendo el
-                  diseño de Figma, pero SIEMPRE deshabilitada. El
-                  schema PagoCrear/PagoActualizar no acepta este campo
-                  -- el modelo la asigna solo a la fecha de HOY al
-                  crearse y nunca se vuelve a tocar. */}
               <label className="form-label fw-semibold">Fecha de pago</label>
+              {/* Editable en creacion (por defecto hoy, pero se puede
+                  cambiar para registrar un pago que ocurrio otro dia).
+                  En edicion queda deshabilitada: PagoActualizar no
+                  acepta fecha_pago, una vez creado el pago no se
+                  puede modificar la fecha. */}
               <input
-                type="text"
+                type="date"
                 className="form-control rounded-3 py-2 mb-1"
-                value={idEditando ? fechaPagoActual : "Se asigna automáticamente al guardar"}
-                disabled
+                value={formulario.fecha_pago}
+                onChange={cambiarCampo("fecha_pago")}
+                disabled={idEditando !== null}
+                required={idEditando === null}
               />
-              <p className="text-muted small mb-0">
-                La fecha de pago la asigna el sistema automáticamente y no se puede modificar.
-              </p>
+              {idEditando && (
+                <p className="text-muted small mb-0">
+                  La fecha de pago no se puede modificar una vez registrado el pago.
+                </p>
+              )}
             </div>
           </div>
 
