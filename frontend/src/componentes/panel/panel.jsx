@@ -61,6 +61,7 @@ function Panel() {
   const [tematicas, setTematicas] = useState([]);
   const [reservas, setReservas] = useState([]);
   const [pagos, setPagos] = useState([]);
+  const [cuotas, setCuotas] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   const [mesCalendario, setMesCalendario] = useState(hoy.getMonth());
@@ -88,7 +89,7 @@ function Panel() {
     setAnioCalendario(hoy.getFullYear());
   };
 
-  // Carga los 4 recursos en paralelo. allSettled evita que un solo
+  // Carga los 5 recursos en paralelo. allSettled evita que un solo
   // endpoint caido tumbe todo el panel (los demas igual se muestran).
   useEffect(() => {
     Promise.allSettled([
@@ -96,11 +97,13 @@ function Panel() {
       api.get("/tematicas"),
       api.get("/reservas"),
       api.get("/pagos"),
-    ]).then(([resClientes, resTematicas, resReservas, resPagos]) => {
+      api.get("/cuotas"),
+    ]).then(([resClientes, resTematicas, resReservas, resPagos, resCuotas]) => {
       setClientes(resClientes.status === "fulfilled" ? resClientes.value.data : []);
       setTematicas(resTematicas.status === "fulfilled" ? resTematicas.value.data : []);
       setReservas(resReservas.status === "fulfilled" ? resReservas.value.data : []);
       setPagos(resPagos.status === "fulfilled" ? resPagos.value.data : []);
+      setCuotas(resCuotas.status === "fulfilled" ? resCuotas.value.data : []);
       setCargando(false);
     });
   }, []);
@@ -124,9 +127,20 @@ function Panel() {
   // Metricas de las 4 tarjetas superiores
   const reservasEsteMes = reservas.filter((r) => esMismoMes(r.fecha_evento)).length;
   const pagosPendientes = pagos.filter((p) => p.estado_pago === "Pendiente").length;
-  const ingresosEsteMes = pagos
-    .filter((p) => esMismoMes(p.fecha_pago))
-    .reduce((suma, p) => suma + p.monto_total, 0);
+
+  // Dinero REALMENTE cobrado este mes:
+  // - pagos de 1 sola cuota que ya estan "Pagado" (se cobraron de una vez)
+  // - + cada cuota individual ya marcada "Pagada" (para pagos con varias
+  //   cuotas), usando la fecha_pago propia de esa cuota, no del pago padre
+  const ingresosPagosUnicos = pagos
+    .filter((p) => p.total_cuotas === 1 && p.estado_pago === "Pagado" && esMismoMes(p.fecha_pago))
+    .reduce((suma, p) => suma + Number(p.monto_total), 0);
+
+  const ingresosCuotasPagadas = cuotas
+    .filter((c) => c.estado === "Pagada" && c.fecha_pago && esMismoMes(c.fecha_pago))
+    .reduce((suma, c) => suma + Number(c.monto), 0);
+
+  const ingresosEsteMes = ingresosPagosUnicos + ingresosCuotasPagadas;
 
   // Las 4 reservas mas cercanas a partir de hoy (futuras, ordenadas)
   const proximasReservas = [...reservas]
