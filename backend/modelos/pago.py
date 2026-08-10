@@ -3,9 +3,9 @@
 import datetime
 
 class Pago:
-    def __init__(self, monto_total, metodo_pago, total_cuotas, id_reserva):
+    def __init__(self, monto_total, metodo_pago, total_cuotas, id_reserva,fecha_pago=None):
         self.id_pago       = None
-        self.fecha_pago    = datetime.date.today()
+        self.fecha_pago    = fecha_pago if fecha_pago else datetime.date.today()
         self.monto_total   = monto_total
         self.metodo_pago   = metodo_pago
         self.estado_pago   = "Pagado" if total_cuotas == 1 else "Pendiente"

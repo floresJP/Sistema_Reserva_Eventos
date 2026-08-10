@@ -22,7 +22,7 @@ _cuota_dao    = CuotaDAO(_pago_dao)
 @router.post("", response_model=PagoRespuesta, status_code=status.HTTP_201_CREATED)
 def crear_pago(datos: PagoCrear):
     # metodo_pago ya llega en MAYUSCULAS (lo normaliza el schema)
-    pago = Pago(datos.monto_total, datos.metodo_pago, datos.total_cuotas, datos.id_reserva.upper())
+    pago = Pago(datos.monto_total, datos.metodo_pago, datos.total_cuotas, datos.id_reserva.upper(), datos.fecha_pago)
     try:
         return _pago_dao.registrar(pago).to_dict()
     except ReservaNoEncontradaError as ex:

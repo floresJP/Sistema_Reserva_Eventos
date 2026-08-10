@@ -18,6 +18,7 @@ class PagoCrear(BaseModel):
     metodo_pago: str
     total_cuotas: int
     id_reserva: str
+    fecha_pago: Optional[date] = None
 
     @field_validator("monto_total")
     @classmethod

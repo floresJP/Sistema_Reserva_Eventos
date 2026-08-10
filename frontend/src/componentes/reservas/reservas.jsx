@@ -1,15 +1,6 @@
 // componentes/reservas.jsx
 import { useEffect, useState } from "react";
-import {
-  FaSearch,
-  FaPen,
-  FaTrash,
-  FaPlus,
-  FaCheck,
-  FaBan,
-  FaFlagCheckered,
-  FaShoppingCart,
-  FaTimes,
+import {FaSearch,FaPen,FaTrash,FaPlus,FaCheck,FaBan,FaFlagCheckered,FaShoppingCart,FaTimes,
 } from "react-icons/fa";
 import api from "../api/axios";
 
@@ -29,8 +20,8 @@ const SERVICIO_VACIO = { nombre_servicio_adicional: "", descripcion: "", precio:
 // ────────────────────────────────────────────────
 // HELPER: extraer un mensaje legible de un error de axios.
 // err.response.data.detail puede ser un STRING (HTTPException nuestra,
-// ej. 404/409) o un ARRAY de {loc, msg, type} (error 422 de validacion
-// de Pydantic). Sin este helper, cualquier 422 caia siempre al mensaje
+// ej. 404/409) (error 422 de validacion
+// de Pydantic). Sin este helper, cualquier 422 cae siempre al mensaje
 // generico sin decir que campo fallo y por que.
 // ────────────────────────────────────────────────
 function extraerMensajeError(err, mensajePorDefecto) {
@@ -211,12 +202,9 @@ function Reservas() {
       .finally(() => setGuardando(false));
   };
 
-  // ojo: este delete ahora se puede llamar desde CUALQUIER estado
-  // (Pendiente, Confirmada, Cancelada, Completada) porque el boton
-  // de Eliminar quedo visible siempre en la tabla. El backend igual
-  // valida con su propia regla (ver el catch de abajo, error 409 si
-  // tiene pagos/servicios asociados), asi que aunque el boton este
-  // siempre ahi, no significa que SIEMPRE se pueda borrar.
+  // Eliminar aparece en todos los estados, pero el backend verifica si
+  //  realmente se puede eliminar. Si la reserva tiene pagos o servicios asociados, 
+  // no permitirá borrarla y mostrará un error 409.
   const eliminarReserva = (r) => {
     if (!window.confirm(`¿Eliminar la reserva ${r.id_reserva}?`)) return;
     api
@@ -249,12 +237,7 @@ function Reservas() {
   //   POST   /servicios-adicionales                              -> crear
   //   PUT    /servicios-adicionales/{id_servicio_adicional}       -> editar
   //   DELETE /servicios-adicionales/{id_servicio_adicional}       -> eliminar
-  //
-  // El campo real que devuelve la API es "id_servicio_adicional"
-  // (ver ServicioAdicionalRespuesta en el schema) -- OJO con este nombre,
-  // es distinto al de otras entidades (id_cliente, id_reserva, etc.).
-  //
-  // REGLA: si la reserva ya esta "Completada" o "Cancelada", el modal
+  //  si la reserva ya esta "Completada" o "Cancelada", el modal
   // se abre en modo SOLO LECTURA -- se ve la lista con el badge
   // Activo/Inactivo de cada servicio, pero no el formulario de
   // agregar/editar ni los botones de editar/eliminar por fila.
@@ -651,7 +634,7 @@ function Reservas() {
                     <td className="text-end">{r.edad_cumpleanero ?? "—"}</td>
                     <td className="text-end">
                       {/* ────────────────────────────────────────────
-                          reglas por estado (asi quedamos):
+                          reglas por estado 
                             Pendiente  -> Editar, Confirmar, Cancelar
                             Confirmada -> Editar, Completar
                             Cancelada  -> solo visualizar (sin acciones de edicion/estado)
@@ -719,16 +702,9 @@ function Reservas() {
                           </>
                         )}
 
-                        {/* Cancelada ya no muestra ni siquiera texto de
-                            "solo lectura" -- ese texto quedaba pegado al
-                            costado del boton Eliminar y se veia raro,
-                            asi que se saco. La fila igual se ve normal,
-                            solo que sin botones de estado. */}
-
                         {/* Completada: unico boton de estado/gestion es
                             "ver servicios adicionales", en modo lectura
-                            (ver modalSoloLectura mas arriba en el
-                            componente) */}
+                            (ver modalSoloLectura  */}
                         {(r.estado === "Completada"|| r.estado === "Cancelada") && (
                           <button
                             type="button"
@@ -942,7 +918,7 @@ function Reservas() {
                   {/* Estado ahora se ve SIEMPRE, no solo editando.
                       Es un boton (no select): cada click alterna entre
                       Activo/Inactivo via alternarEstadoServicio.
-                      OJO: al CREAR (POST) el backend igual ignora este
+                      al CREAR (POST) el backend igual ignora este
                       valor y pone "Activo" por defecto sin importar lo
                       que se muestre aca -- solo se manda de verdad
                       cuando se esta editando (PUT), ver guardarServicio */}
