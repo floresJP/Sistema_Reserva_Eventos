@@ -45,7 +45,16 @@ const MAPA_PALABRAS_CLAVE = [
   { palabras: ["policia"], archivo: "policia.png" },
   { palabras: ["arcoiris"], archivo: "arcoiris.png" },
   { palabras: ["vaquero"], archivo: "vaqueros.png" },
-];
+  { palabras: ["baby"], archivo: "baby_shower.png" },
+  { palabras: ["aniversario"], archivo: "aniversario romantico.png" },
+  { palabras: ["guerreras"], archivo: "guerreras k'pop.png" },
+  { palabras: ["oso"], archivo: "oso.png" },
+  { palabras: ["holloween"], archivo: "Fiesta de Halloween infantil.png" },
+  { palabras: ["15 años"], archivo: "15 años elegante.png" },
+  { palabras: ["el hombre arana"], archivo: "el hombre arana.png" },
+  { palabras: ["fiesta de graduacion universitaria"], archivo: "fiesta de graduacion universitaria.png" },
+  ];
+
 
 // Quita tildes para que "heroe" tambien coincida con "héroe", etc.
 const normalizar = (texto) =>
