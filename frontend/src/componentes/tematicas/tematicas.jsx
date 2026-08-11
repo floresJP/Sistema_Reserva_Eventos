@@ -1,25 +1,72 @@
 // componentes/tematicas.jsx
 import { useEffect, useState } from "react";
-import { FaSearch, FaPen, FaTrash, FaPlus, FaCheck, FaChevronLeft, FaChevronRight, FaImage } from "react-icons/fa";
+import { FaSearch, FaPen, FaTrash, FaPlus, FaChevronLeft, FaChevronRight, FaImage } from "react-icons/fa";
 import api from "../api/axios";
 
 // ────────────────────────────────────────────────
-// CATALOGO DE IMAGENES PREDETERMINADAS
+// DETECCION DE IMAGEN POR PALABRAS CLAVE
+// La imagen NO se guarda en la base de datos: se calcula en el
+// frontend a partir del texto de la descripcion, cada vez que se
+// muestra. Cada entrada define palabras clave (en minusculas, sin
+// tildes) que, si aparecen en la descripcion, seleccionan ese
+// archivo. Se evalua en orden y se usa la primera coincidencia.
 // ────────────────────────────────────────────────
-const CARPETA_IMAGENES = "/images/tematicas/";
-const CATALOGO_IMAGENES = [
-  { id: "princesas.jpg", nombre: "Princesas" },
-  { id: "futbol.jpg", nombre: "Futbol" },
-  { id: "superheroes.jpg", nombre: "Superheroes" },
-  { id: "ositos.jpg", nombre: "Ositos" },
-  { id: "dinosaurios.jpg", nombre: "Dinosaurios" },
-  { id: "piratas.jpg", nombre: "Piratas" },
-  { id: "cumpleanos.jpg", nombre: "Cumpleaños" },
-  { id: "espacio.jpg", nombre: "Espacio" },
-  { id: "animales.jpg", nombre: "Animales" },
+const CARPETA_IMAGENES = "/imagenes-tematica/";
+const IMAGEN_POR_DEFECTO = "default.png";
+
+const MAPA_PALABRAS_CLAVE = [
+  { palabras: ["princesa"], archivo: "princesas.png" },
+  { palabras: ["futbol"], archivo: "futbol.png" },
+  { palabras: ["heroe", "superheroe"], archivo: "superheroes.png" },
+  { palabras: ["dinosaurio"], archivo: "dinosaurios.png" },
+  { palabras: ["pirata"], archivo: "piratas.png" },
+  { palabras: ["espacio", "astronauta", "galaxia"], archivo: "espacio.png" },
+  { palabras: ["globo", "cumple"], archivo: "globos.png" },
+  { palabras: ["construccion"], archivo: "construccion.png" },
+  { palabras: ["unicornio"], archivo: "unicornios.png" },
+  { palabras: ["hada"], archivo: "hadas.png" },
+  { palabras: ["robot"], archivo: "robots.png" },
+  { palabras: ["safari", "animal", "selva"], archivo: "safari.png" },
+  { palabras: ["oceano", "mar", "sirena"], archivo: "oceano.png" },
+  { palabras: ["ninja"], archivo: "ninjas.png" },
+  { palabras: ["circo"], archivo: "circo.png" },
+  { palabras: ["granja"], archivo: "granja.png" },
+  { palabras: ["jardin", "flores"], archivo: "jardin.png" },
+  { palabras: ["mariposa"], archivo: "mariposas.png" },
+  { palabras: ["arte", "pintura"], archivo: "arte.png" },
+  { palabras: ["auto", "carro", "carrera"], archivo: "autos.png" },
+  { palabras: ["bombero"], archivo: "bomberos.png" },
+  { palabras: ["camping", "acampar"], archivo: "camping.png" },
+  { palabras: ["cocina", "chef"], archivo: "cocina.png" },
+  { palabras: ["estrella"], archivo: "estrellas.png" },
+  { palabras: ["magia", "mago"], archivo: "magia.png" },
+  { palabras: ["medico", "doctor"], archivo: "medicos.png" },
+  { palabras: ["musica"], archivo: "musica.png" },
+  { palabras: ["policia"], archivo: "policia.png" },
+  { palabras: ["arcoiris"], archivo: "arcoiris.png" },
+  { palabras: ["vaquero"], archivo: "vaqueros.png" },
 ];
 
-const FORMULARIO_VACIO = { descripcion: "", precio_base: "", imagen_url: "", estado: "Disponible" };
+// Quita tildes para que "heroe" tambien coincida con "héroe", etc.
+const normalizar = (texto) =>
+  texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+const obtenerImagenSegunDescripcion = (descripcion) => {
+  const texto = normalizar(descripcion || "");
+  for (const entrada of MAPA_PALABRAS_CLAVE) {
+    if (entrada.palabras.some((palabra) => texto.includes(palabra))) {
+      return entrada.archivo;
+    }
+  }
+  return null; // sin coincidencia => se usara la imagen por defecto
+};
+
+const PRECIO_MAXIMO = 50000;
+
+const FORMULARIO_VACIO = { descripcion: "", precio_base: "", estado: "Disponible" };
 const TEMATICAS_POR_PAGINA = 4;
 
 function Tematicas() {
@@ -81,7 +128,6 @@ function Tematicas() {
     setFormulario({
       descripcion: tematica.descripcion,
       precio_base: tematica.precio_base,
-      imagen_url: tematica.imagen_url || "",
       estado: tematica.estado,
     });
     setErrorFormulario("");
@@ -98,22 +144,26 @@ function Tematicas() {
   const cambiarCampo = (campo) => (e) =>
     setFormulario((f) => ({ ...f, [campo]: e.target.value }));
 
-  const seleccionarImagen = (idImagen) => {
-    setFormulario((f) => ({
-      ...f,
-      imagen_url: f.imagen_url === idImagen ? "" : idImagen,
-    }));
-  };
-
   const guardarTematica = (e) => {
     e.preventDefault();
-    setGuardando(true);
     setErrorFormulario("");
+
+    const precioNumero = Number(formulario.precio_base);
+
+    if (!formulario.precio_base || Number.isNaN(precioNumero) || precioNumero <= 0) {
+      setErrorFormulario("Ingresa un precio base valido.");
+      return;
+    }
+    if (precioNumero > PRECIO_MAXIMO) {
+      setErrorFormulario(`El precio base no puede superar S/ ${PRECIO_MAXIMO.toLocaleString("es-PE")}.`);
+      return;
+    }
+
+    setGuardando(true);
 
     const datosBase = {
       descripcion: formulario.descripcion,
-      precio_base: Number(formulario.precio_base),
-      imagen_url: formulario.imagen_url || null,
+      precio_base: precioNumero,
     };
 
     const peticion = idEditando
@@ -144,7 +194,7 @@ function Tematicas() {
   };
 
   // ──────────────────
-  // VISTA: FORMULARIO 
+  // VISTA: FORMULARIO
   // ──────────────────
   if (vista === "formulario") {
     return (
@@ -162,27 +212,36 @@ function Tematicas() {
           <div className="row g-4">
             <div className="col-12 col-md-6">
               <label className="form-label fw-semibold">Descripcion</label>
-              <input
-                type="text"
+              <textarea
                 className="form-control rounded-3 py-2"
                 placeholder="Ingrese descripcion de la tematica"
+                rows={4}
+                maxLength={300}
                 value={formulario.descripcion}
                 onChange={cambiarCampo("descripcion")}
                 required
               />
+              <p className="text-muted small mt-1 mb-0">
+                {formulario.descripcion.length}/300 caracteres. La imagen se elige sola segun
+                palabras como "princesa", "futbol", "heroe", "oso", "cumple" o "espacio".
+              </p>
             </div>
             <div className="col-12 col-md-6">
               <label className="form-label fw-semibold">Precio Base</label>
               <input
                 type="number"
                 step="0.01"
-                min="0"
+                min="0.01"
+                max={PRECIO_MAXIMO}
                 className="form-control rounded-3 py-2"
                 placeholder="0.00"
                 value={formulario.precio_base}
                 onChange={cambiarCampo("precio_base")}
                 required
               />
+              <p className="text-muted small mt-1 mb-0">
+                Entre S/ 0.01 y S/ {PRECIO_MAXIMO.toLocaleString("es-PE")}.00
+              </p>
             </div>
 
             {idEditando && (
@@ -198,65 +257,6 @@ function Tematicas() {
                 </select>
               </div>
             )}
-          </div>
-
-          {/* ──────────────────────────────────────
-              SELECCION DE IMAGEN (catalogo predefinido)
-              ────────────────────────────────────── */}
-          <div className="mt-4">
-            <label className="form-label fw-semibold d-block">Imagen de la tematica</label>
-            <p className="text-muted small mb-3">
-              Elige una imagen del catalogo. Si no seleccionas ninguna, se usara una imagen por defecto.
-            </p>
-
-            <div className="row g-3">
-              {CATALOGO_IMAGENES.map((img) => {
-                const seleccionada = formulario.imagen_url === img.id;
-                return (
-                  <div className="col-6 col-sm-4 col-md-3 col-lg-2" key={img.id}>
-                    <button
-                      type="button"
-                      onClick={() => seleccionarImagen(img.id)}
-                      className="btn p-0 w-100 rounded-3 overflow-hidden position-relative text-start"
-                      style={{
-                        border: seleccionada ? "3px solid #7c3aed" : "1px solid #e0e0e0",
-                        boxShadow: seleccionada ? "0 0 0 3px rgba(124,58,237,0.15)" : "none",
-                      }}
-                      title={img.nombre}
-                    >
-                      {imagenesConError.includes(img.id) ? (
-                        <div
-                          className="w-100 d-flex align-items-center justify-content-center text-muted"
-                          style={{ height: 80, backgroundColor: "#f1f1f4" }}
-                        >
-                          <FaImage size={22} />
-                        </div>
-                      ) : (
-                        <img
-                          src={`${CARPETA_IMAGENES}${img.id}`}
-                          alt={img.nombre}
-                          className="w-100"
-                          style={{ height: 80, objectFit: "cover", backgroundColor: "#f1f1f4" }}
-                          onError={() => marcarImagenConError(img.id)}
-                        />
-                      )}
-                      <div className="px-2 py-2 small fw-semibold text-truncate" style={{ backgroundColor: "white" }}>
-                        {img.nombre}
-                      </div>
-
-                      {seleccionada && (
-                        <span
-                          className="position-absolute d-flex align-items-center justify-content-center rounded-circle text-white"
-                          style={{ top: 6, right: 6, width: 22, height: 22, backgroundColor: "#7c3aed" }}
-                        >
-                          <FaCheck size={11} />
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
           </div>
 
           <div className="d-flex justify-content-end gap-2 mt-5">
@@ -324,10 +324,12 @@ function Tematicas() {
       ) : (
         <>
         <div className="row g-4">
-          {tematicasPagina.map((t) => (
+          {tematicasPagina.map((t) => {
+            const archivoImagen = obtenerImagenSegunDescripcion(t.descripcion) || IMAGEN_POR_DEFECTO;
+            return (
             <div className="col-12 col-sm-6 col-lg-3" key={t.id_tematica}>
               <div className="card h-100 border-0 shadow-sm rounded-4 overflow-hidden">
-                {imagenesConError.includes(t.imagen_url || "default.jpg") ? (
+                {imagenesConError.includes(archivoImagen) ? (
                   <div
                     className="w-100 d-flex align-items-center justify-content-center text-muted"
                     style={{ height: 160, backgroundColor: "#f1f1f4" }}
@@ -336,11 +338,11 @@ function Tematicas() {
                   </div>
                 ) : (
                   <img
-                    src={t.imagen_url ? `${CARPETA_IMAGENES}${t.imagen_url}` : `${CARPETA_IMAGENES}default.jpg`}
+                    src={`${CARPETA_IMAGENES}${archivoImagen}`}
                     alt={t.descripcion}
                     className="w-100"
                     style={{ height: 160, objectFit: "cover", backgroundColor: "#f1f1f4" }}
-                    onError={() => marcarImagenConError(t.imagen_url || "default.jpg")}
+                    onError={() => marcarImagenConError(archivoImagen)}
                   />
                 )}
 
@@ -387,7 +389,8 @@ function Tematicas() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {totalPaginas > 1 && (
